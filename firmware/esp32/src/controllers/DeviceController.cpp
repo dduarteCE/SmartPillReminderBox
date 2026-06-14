@@ -15,6 +15,7 @@ DeviceController::DeviceController()
 void DeviceController::setup() {
     storageManager.begin();
     drawerManager.begin();
+    reminderController.setDrawerManager(&drawerManager);
     reminderController.begin();
     lcdScreen.begin();
     buzzer.begin();
@@ -28,7 +29,11 @@ void DeviceController::loop() {
     webServerController.handleClient();
     webSocketService.handleWebSocket();
     drawerManager.update();
-    reminderController.update();
+
+    DateTime currentDateTime = clockModule.getCurrentDateTime();
+
+    reminderController.checkSchedules(currentDateTime);
+    reminderController.update(currentDateTime);
 
     while (reminderController.hasPendingEvent()) {
         publishDoseEvent(reminderController.popPendingEvent());

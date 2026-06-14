@@ -1,16 +1,27 @@
 #include "controllers/ReminderController.h"
+#include "controllers/DrawerManager.h"
 
 ReminderController::ReminderController()
-    : scheduleCount(0),
+    : drawerManager(nullptr),
+      scheduleCount(0),
       pendingEventCount(0),
       currentSchedule(),
       currentScheduledTime({0, 0}),
       state(ReminderState::Idle),
       reminderStartTime(0),
+      nextEventID(0),
+      lastTriggeredScheduleId(0),
+      lastTriggeredHour(-1),
+      lastTriggeredMinute(-1),
+      lastTriggeredDate(""),
       interactionWindowMs(REMINDER_INTERACTION_WINDOW_MS),
       hasDrawerOpened(false) {}
 
 void ReminderController::begin() {}
+
+void ReminderController::setDrawerManager(DrawerManager* drawerManager) {
+    this->drawerManager = drawerManager;
+}
 
 void ReminderController::setSchedules(const Schedule schedules[], int count) {
     scheduleCount = min(count, MAX_SCHEDULES);
@@ -64,49 +75,137 @@ void ReminderController::checkSchedules(const DateTime& currentDateTime) {
 
     for (int index = 0; index < scheduleCount; index++) {
         if (schedules[index].shouldTrigger(currentDateTime)) {
-            startReminder(schedules[index], {currentDateTime.hour, currentDateTime.minute});
+            bool alreadyTriggered =
+                schedules[index].getId() == lastTriggeredScheduleId &&
+                currentDateTime.hour == lastTriggeredHour &&
+                currentDateTime.minute == lastTriggeredMinute &&
+                currentDateTime.date == lastTriggeredDate;
+
+            if (alreadyTriggered) {
+                continue;
+            }
+
+            lastTriggeredScheduleId = schedules[index].getId();
+            lastTriggeredHour = currentDateTime.hour;
+            lastTriggeredMinute = currentDateTime.minute;
+            lastTriggeredDate = currentDateTime.date;
+            startReminder(schedules[index], currentDateTime);
             return;
         }
     }
 }
 
-void ReminderController::startReminder(const Schedule& schedule, const ScheduleTime& scheduledTime) {
+void ReminderController::startReminder(const Schedule& schedule, const DateTime& currentDateTime) {
+    if (state != ReminderState::Idle) {
+        return;
+    }
+
     currentSchedule = schedule;
-    currentScheduledTime = scheduledTime;
+    currentScheduledTime = {currentDateTime.hour, currentDateTime.minute};
     reminderStartTime = millis();
     hasDrawerOpened = false;
     state = ReminderState::ReminderActive;
+    DoseEvent event = buildEvent(
+        DoseEventType::ReminderStarted,
+        DoseEventStatus::Pending,
+        currentDateTime
+    );
+    pushPendingEvent(event);
+    nextEventID++;
 }
 
-void ReminderController::updateReminderState() {
-    if (state == ReminderState::ReminderActive || state == ReminderState::WaitingForClose) {
-        if (millis() - reminderStartTime >= interactionWindowMs) {
-            markDoseMissed();
-        }
+void ReminderController::updateReminderState(const DateTime& currentDateTime) {
+    if (state != ReminderState::ReminderActive && state != ReminderState::WaitingForClose) {
+        return;
+    }
+
+    if(drawerManager == nullptr){
+        return;
+    }
+
+    bool drawer_open = drawerManager->isDrawerOpen(currentSchedule.getDrawerId());
+
+    if(state == ReminderState::ReminderActive && drawer_open){
+        markDrawerOpened(currentDateTime);
+        return;
+    }
+
+    if(state == ReminderState::WaitingForClose && !drawer_open){
+        markDrawerClosed(currentDateTime);
+        return;
+    }
+
+
+    if (millis() - reminderStartTime >= interactionWindowMs) {
+        markDoseMissed(currentDateTime);
+        return;
     }
 }
 
-void ReminderController::update() {
-    updateReminderState();
+void ReminderController::update(const DateTime& currentDateTime) {
+    updateReminderState(currentDateTime);
 }
 
-void ReminderController::markDrawerOpened() {
+void ReminderController::markDrawerOpened(const DateTime& currentDateTime) {
+    if (state != ReminderState::ReminderActive) {
+        return;
+    }
     hasDrawerOpened = true;
     state = ReminderState::WaitingForClose;
+    DoseEvent event = buildEvent(
+        DoseEventType::DrawerOpened,
+        DoseEventStatus::Pending,
+        currentDateTime
+    );
+    pushPendingEvent(event);
+    nextEventID++;
 }
 
-void ReminderController::markDrawerClosed() {
-    if (hasDrawerOpened) {
-        markDoseCompleted();
+void ReminderController::markDrawerClosed(const DateTime& currentDateTime) {
+    if (state != ReminderState::WaitingForClose || !hasDrawerOpened) {
+        return;
     }
+
+    DoseEvent event = buildEvent(
+        DoseEventType::DrawerClosed,
+        DoseEventStatus::Pending,
+        currentDateTime
+    );
+
+    pushPendingEvent(event);
+    nextEventID++;
+    markDoseCompleted(currentDateTime);
 }
 
-void ReminderController::markDoseCompleted() {
+void ReminderController::markDoseCompleted(const DateTime& currentDateTime) {
+    if(state != ReminderState::WaitingForClose){
+        return;
+    }
+
     state = ReminderState::InteractionComplete;
+    DoseEvent event = buildEvent(
+        DoseEventType::DoseCompleted,
+        DoseEventStatus::Taken,
+        currentDateTime
+    );
+    pushPendingEvent(event);
+    nextEventID++;
+    resetCurrentReminder();
 }
 
-void ReminderController::markDoseMissed() {
+void ReminderController::markDoseMissed(const DateTime& currentDateTime) {
+    if (state != ReminderState::ReminderActive && state != ReminderState::WaitingForClose) {
+        return;
+    }
     state = ReminderState::Timeout;
+    DoseEvent event = buildEvent(
+        DoseEventType::DoseMissed,
+        DoseEventStatus::Missed,
+        currentDateTime
+    );
+    pushPendingEvent(event);
+    nextEventID++;
+    resetCurrentReminder();
 }
 
 void ReminderController::resetCurrentReminder() {
@@ -118,6 +217,31 @@ void ReminderController::resetCurrentReminder() {
 
 ReminderState ReminderController::getState() const {
     return state;
+}
+
+DoseEvent ReminderController::buildEvent(
+    DoseEventType type,
+    DoseEventStatus status,
+    const DateTime& currentDateTime
+) {
+    Drawer* drawer = drawerManager != nullptr
+        ? drawerManager->getDrawer(currentSchedule.getDrawerId())
+        : nullptr;
+
+    String medicationName = drawer != nullptr ? drawer->getMedicationName() : "";
+    String scheduledTimeString = String(currentScheduledTime.hour) + ":" + String(currentScheduledTime.minute);
+    String timestampString = currentDateTime.date + "T" + currentDateTime.time;
+
+    return DoseEvent(
+        nextEventID,
+        type,
+        currentSchedule.getId(),
+        scheduledTimeString,
+        currentSchedule.getDrawerId(),
+        medicationName,
+        timestampString,
+        status
+    );
 }
 
 bool ReminderController::hasPendingEvent() const {
