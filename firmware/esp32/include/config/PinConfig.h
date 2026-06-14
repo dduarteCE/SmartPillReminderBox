@@ -2,8 +2,18 @@
 
 constexpr int LED_DRAWER_1_PIN = 12;
 constexpr int LED_DRAWER_2_PIN = 13;
+constexpr int LED_DRAWER_3_PIN = -1;
+constexpr int LED_DRAWER_4_PIN = -1;
+constexpr int LED_DRAWER_5_PIN = -1;
+constexpr int LED_DRAWER_6_PIN = -1;
+constexpr int LED_DRAWER_7_PIN = -1;
 
 constexpr int REED_DRAWER_1_PIN = 25;
 constexpr int REED_DRAWER_2_PIN = 26;
+constexpr int REED_DRAWER_3_PIN = -1;
+constexpr int REED_DRAWER_4_PIN = -1;
+constexpr int REED_DRAWER_5_PIN = -1;
+constexpr int REED_DRAWER_6_PIN = -1;
+constexpr int REED_DRAWER_7_PIN = -1;
 
 constexpr int BUZZER_PIN = 27;

@@ -21,6 +21,30 @@ void Schedule::setEnabled(bool enabled) {
     this->enabled = enabled;
 }
 
+int Schedule::getTimeCount() const {
+    return timeCount;
+}
+
+ScheduleTime Schedule::getTime(int index) const {
+    if (index < 0 || index >= timeCount) {
+        return {-1, -1};
+    }
+
+    return times[index];
+}
+
+int Schedule::getDayCount() const {
+    return dayCount;
+}
+
+String Schedule::getDayOfWeek(int index) const {
+    if (index < 0 || index >= dayCount) {
+        return "";
+    }
+
+    return daysOfWeek[index];
+}
+
 bool Schedule::addTime(int hour, int minute) {
     if (timeCount >= MAX_SCHEDULE_TIMES) {
         return false;

@@ -18,6 +18,10 @@ public:
     int getDrawerId() const;
     bool isEnabled() const;
     void setEnabled(bool enabled);
+    int getTimeCount() const;
+    ScheduleTime getTime(int index) const;
+    int getDayCount() const;
+    String getDayOfWeek(int index) const;
 
     bool addTime(int hour, int minute);
     bool addDayOfWeek(const String& dayOfWeek);

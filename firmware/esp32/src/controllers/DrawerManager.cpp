@@ -5,9 +5,14 @@
 DrawerManager::DrawerManager()
     : drawers{
         Drawer(1, "", false, LED_DRAWER_1_PIN, REED_DRAWER_1_PIN),
-        Drawer(2, "", false, LED_DRAWER_2_PIN, REED_DRAWER_2_PIN)
+        Drawer(2, "", false, LED_DRAWER_2_PIN, REED_DRAWER_2_PIN),
+        Drawer(3, "", false, LED_DRAWER_3_PIN, REED_DRAWER_3_PIN),
+        Drawer(4, "", false, LED_DRAWER_4_PIN, REED_DRAWER_4_PIN),
+        Drawer(5, "", false, LED_DRAWER_5_PIN, REED_DRAWER_5_PIN),
+        Drawer(6, "", false, LED_DRAWER_6_PIN, REED_DRAWER_6_PIN),
+        Drawer(7, "", false, LED_DRAWER_7_PIN, REED_DRAWER_7_PIN)
       },
-      drawerCount(2) {}
+      drawerCount(MAX_DRAWERS) {}
 
 void DrawerManager::begin() {
     for (int index = 0; index < drawerCount; index++) {

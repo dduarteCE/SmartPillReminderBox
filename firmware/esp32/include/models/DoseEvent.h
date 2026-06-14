@@ -32,6 +32,12 @@ public:
 
     int getId() const;
     DoseEventType getType() const;
+    int getScheduleId() const;
+    String getScheduledTime() const;
+    int getDrawerId() const;
+    String getMedicationName() const;
+    String getTimestamp() const;
+    DoseEventStatus getStatus() const;
     String toJson() const;
 
 private:

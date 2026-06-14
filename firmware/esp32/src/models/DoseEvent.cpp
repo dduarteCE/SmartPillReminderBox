@@ -36,6 +36,30 @@ DoseEventType DoseEvent::getType() const {
     return type;
 }
 
+int DoseEvent::getScheduleId() const {
+    return scheduleId;
+}
+
+String DoseEvent::getScheduledTime() const {
+    return scheduledTime;
+}
+
+int DoseEvent::getDrawerId() const {
+    return drawerId;
+}
+
+String DoseEvent::getMedicationName() const {
+    return medicationName;
+}
+
+String DoseEvent::getTimestamp() const {
+    return timestamp;
+}
+
+DoseEventStatus DoseEvent::getStatus() const {
+    return status;
+}
+
 String DoseEvent::toJson() const {
     String json = "{";
     json += "\"id\":";

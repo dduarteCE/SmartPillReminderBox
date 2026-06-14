@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "config/SystemConfig.h"
 #include "models/DoseEvent.h"
 #include "models/Drawer.h"
@@ -21,5 +22,8 @@ public:
     String getConfigFilePath() const;
 
 private:
+    bool readConfigDocument(JsonDocument& doc);
+    bool writeConfigDocument(const JsonDocument& doc);
+
     String configFilePath;
 };
