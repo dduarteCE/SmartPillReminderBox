@@ -10,6 +10,8 @@ public:
 
     void begin();
     void setDrawers(const Drawer drawers[], int count);
+    int getDrawers(Drawer outputDrawers[], int maxDrawers) const;
+    int getDrawerCount() const;
     Drawer* getDrawer(int drawerId);
     bool configureDrawer(int drawerId, const String& medicationName, bool enabled);
     void highlightDrawer(int drawerId);

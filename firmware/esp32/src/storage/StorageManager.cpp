@@ -321,10 +321,10 @@ int StorageManager::loadEvents(DoseEvent events[], int maxEvents) {
             break;
         }
 
-        int id = eventObject["id"] | 0;
+        int id = eventObject["id"] | -1;
         int scheduleId = eventObject["scheduleId"] | 0;
         int drawerId = eventObject["drawerId"] | 0;
-        if (id <= 0 || scheduleId <= 0 || drawerId <= 0) {
+        if (id < 0 || scheduleId <= 0 || drawerId <= 0) {
             continue;
         }
 

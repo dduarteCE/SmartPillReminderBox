@@ -27,6 +27,19 @@ void DrawerManager::setDrawers(const Drawer drawers[], int count) {
     }
 }
 
+int DrawerManager::getDrawers(Drawer outputDrawers[], int maxDrawers) const {
+    int count = min(drawerCount, maxDrawers);
+    for (int index = 0; index < count; index++) {
+        outputDrawers[index] = drawers[index];
+    }
+
+    return count;
+}
+
+int DrawerManager::getDrawerCount() const {
+    return drawerCount;
+}
+
 Drawer* DrawerManager::getDrawer(int drawerId) {
     for (int index = 0; index < drawerCount; index++) {
         if (drawers[index].getId() == drawerId) {

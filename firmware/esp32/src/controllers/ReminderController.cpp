@@ -30,6 +30,19 @@ void ReminderController::setSchedules(const Schedule schedules[], int count) {
     }
 }
 
+int ReminderController::getSchedules(Schedule outputSchedules[], int maxSchedules) const {
+    int count = min(scheduleCount, maxSchedules);
+    for (int index = 0; index < count; index++) {
+        outputSchedules[index] = schedules[index];
+    }
+
+    return count;
+}
+
+int ReminderController::getScheduleCount() const {
+    return scheduleCount;
+}
+
 bool ReminderController::addSchedule(const Schedule& schedule) {
     if (scheduleCount >= MAX_SCHEDULES) {
         return false;
@@ -217,6 +230,12 @@ void ReminderController::resetCurrentReminder() {
 
 ReminderState ReminderController::getState() const {
     return state;
+}
+
+void ReminderController::setNextEventId(int nextEventId) {
+    if (nextEventId > nextEventID) {
+        nextEventID = nextEventId;
+    }
 }
 
 DoseEvent ReminderController::buildEvent(
