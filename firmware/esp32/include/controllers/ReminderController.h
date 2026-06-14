@@ -25,6 +25,8 @@ public:
     void begin();
     void setDrawerManager(DrawerManager* drawerManager);
     void setSchedules(const Schedule schedules[], int count);
+    int getSchedules(Schedule outputSchedules[], int maxSchedules) const;
+    int getScheduleCount() const;
     bool addSchedule(const Schedule& schedule);
     bool updateSchedule(const Schedule& schedule);
     bool removeSchedule(int scheduleId);
@@ -39,6 +41,7 @@ public:
     void markDoseMissed(const DateTime& currentDateTime);
     void resetCurrentReminder();
     ReminderState getState() const;
+    void setNextEventId(int nextEventId);
     bool hasPendingEvent() const;
     DoseEvent popPendingEvent();
 

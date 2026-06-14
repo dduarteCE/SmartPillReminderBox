@@ -10,7 +10,8 @@ DeviceController::DeviceController()
       storageManager(),
       lcdScreen(),
       buzzer(BUZZER_PIN),
-      clockModule() {}
+      clockModule(),
+      unacknowledgedEventCount(0) {}
 
 void DeviceController::setup() {
     storageManager.begin();
@@ -41,19 +42,59 @@ void DeviceController::loop() {
 }
 
 bool DeviceController::applyDrawerConfig(int drawerId, const String& medicationName, bool enabled) {
-    return drawerManager.configureDrawer(drawerId, medicationName, enabled);
+    if (!drawerManager.configureDrawer(drawerId, medicationName, enabled)) {
+        return false;
+    }
+
+    return persistDrawers();
 }
 
 bool DeviceController::applySchedule(const Schedule& schedule) {
     if (reminderController.updateSchedule(schedule)) {
-        return true;
+        return persistSchedules();
     }
 
-    return reminderController.addSchedule(schedule);
+    if (!reminderController.addSchedule(schedule)) {
+        return false;
+    }
+
+    return persistSchedules();
 }
 
 bool DeviceController::removeSchedule(int scheduleId) {
-    return reminderController.removeSchedule(scheduleId);
+    if (!reminderController.removeSchedule(scheduleId)) {
+        return false;
+    }
+
+    return persistSchedules();
+}
+
+bool DeviceController::acknowledgeEvents(const int eventIds[], int count) {
+    if (!storageManager.clearAcknowledgedEvents(eventIds, count)) {
+        return false;
+    }
+
+    for (int index = unacknowledgedEventCount - 1; index >= 0; index--) {
+        int eventId = unacknowledgedEvents[index].getId();
+        bool acknowledged = false;
+        for (int eventIdIndex = 0; eventIdIndex < count; eventIdIndex++) {
+            if (eventIds[eventIdIndex] == eventId) {
+                acknowledged = true;
+                break;
+            }
+        }
+
+        if (!acknowledged) {
+            continue;
+        }
+
+        for (int shift = index; shift < unacknowledgedEventCount - 1; shift++) {
+            unacknowledgedEvents[shift] = unacknowledgedEvents[shift + 1];
+        }
+        unacknowledgedEventCount--;
+    }
+
+    return true;
 }
 
 void DeviceController::onReminderEvent(const DoseEvent& event) {
@@ -62,11 +103,13 @@ void DeviceController::onReminderEvent(const DoseEvent& event) {
 
 void DeviceController::publishDoseEvent(const DoseEvent& event) {
     webSocketService.sendEvent(event);
+    storeUnacknowledgedEvent(event);
 }
 
 void DeviceController::loadStoredConfiguration() {
     Drawer storedDrawers[MAX_DRAWERS];
     Schedule storedSchedules[MAX_SCHEDULES];
+    DoseEvent storedEvents[MAX_PENDING_EVENTS];
 
     int drawerCount = storageManager.loadDrawers(storedDrawers, MAX_DRAWERS);
     if (drawerCount > 0) {
@@ -77,4 +120,39 @@ void DeviceController::loadStoredConfiguration() {
     if (scheduleCount > 0) {
         reminderController.setSchedules(storedSchedules, scheduleCount);
     }
+
+    unacknowledgedEventCount = storageManager.loadEvents(storedEvents, MAX_PENDING_EVENTS);
+    int nextEventId = 1;
+    for (int index = 0; index < unacknowledgedEventCount; index++) {
+        unacknowledgedEvents[index] = storedEvents[index];
+        if (storedEvents[index].getId() >= nextEventId) {
+            nextEventId = storedEvents[index].getId() + 1;
+        }
+    }
+    reminderController.setNextEventId(nextEventId);
+}
+
+bool DeviceController::persistDrawers() {
+    Drawer drawers[MAX_DRAWERS];
+    int count = drawerManager.getDrawers(drawers, MAX_DRAWERS);
+    return storageManager.saveDrawers(drawers, count);
+}
+
+bool DeviceController::persistSchedules() {
+    Schedule schedules[MAX_SCHEDULES];
+    int count = reminderController.getSchedules(schedules, MAX_SCHEDULES);
+    return storageManager.saveSchedules(schedules, count);
+}
+
+bool DeviceController::persistEvents() {
+    return storageManager.saveEvents(unacknowledgedEvents, unacknowledgedEventCount);
+}
+
+bool DeviceController::storeUnacknowledgedEvent(const DoseEvent& event) {
+    if (unacknowledgedEventCount >= MAX_PENDING_EVENTS) {
+        return false;
+    }
+
+    unacknowledgedEvents[unacknowledgedEventCount++] = event;
+    return persistEvents();
 }
