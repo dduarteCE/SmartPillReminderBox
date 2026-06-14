@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <WebServer.h>
 
 class DeviceController;
 
@@ -16,15 +17,20 @@ public:
     void handleGetSchedules();
     void handleGetEvents();
     void handleGetTime();
-    void handleUpdateDrawer(int drawerId);
-    void handleCreateSchedule();
-    void handleUpdateSchedule(int scheduleId);
+    void handleUpdateDrawer(int drawerId, const String& requestBody = "");
+    void handleCreateSchedule(const String& requestBody = "");
+    void handleUpdateSchedule(int scheduleId, const String& requestBody = "");
     void handleDeleteSchedule(int scheduleId);
-    void handleSetTime();
-    void handleAcknowledgeEvents();
+    void handleSetTime(const String& requestBody = "");
+    void handleAcknowledgeEvents(const String& requestBody = "");
     String getLastResponse() const;
 
 private:
+    void sendJsonResponse(int statusCode = 200);
+    void handleDynamicRoute();
+    bool extractPathId(const String& uri, const String& prefix, int& id) const;
+
     DeviceController* deviceController;
+    WebServer server;
     String lastResponse;
 };

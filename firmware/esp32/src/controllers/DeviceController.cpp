@@ -11,10 +11,11 @@ DeviceController::DeviceController()
       lcdScreen(),
       buzzer(BUZZER_PIN),
       clockModule(),
-      unacknowledgedEventCount(0) {}
+      unacknowledgedEventCount(0),
+      storageReady(false) {}
 
 void DeviceController::setup() {
-    storageManager.begin();
+    storageReady = storageManager.begin();
     drawerManager.begin();
     reminderController.setDrawerManager(&drawerManager);
     reminderController.begin();
@@ -39,6 +40,88 @@ void DeviceController::loop() {
     while (reminderController.hasPendingEvent()) {
         publishDoseEvent(reminderController.popPendingEvent());
     }
+}
+
+bool DeviceController::isReady() const {
+    return storageReady;
+}
+
+bool DeviceController::isStorageReady() const {
+    return storageReady;
+}
+
+bool DeviceController::isWifiConnected() const {
+    return true;
+}
+
+bool DeviceController::isWebSocketEnabled() const {
+    return true;
+}
+
+int DeviceController::getDrawers(Drawer outputDrawers[], int maxDrawers) const {
+    return drawerManager.getDrawers(outputDrawers, maxDrawers);
+}
+
+bool DeviceController::getDrawer(int drawerId, Drawer& drawer) const {
+    const Drawer* foundDrawer = drawerManager.getDrawer(drawerId);
+    if (foundDrawer == nullptr) {
+        return false;
+    }
+
+    drawer = *foundDrawer;
+    return true;
+}
+
+int DeviceController::getSchedules(Schedule outputSchedules[], int maxSchedules) const {
+    return reminderController.getSchedules(outputSchedules, maxSchedules);
+}
+
+bool DeviceController::getSchedule(int scheduleId, Schedule& schedule) const {
+    Schedule schedules[MAX_SCHEDULES];
+    int count = reminderController.getSchedules(schedules, MAX_SCHEDULES);
+    for (int index = 0; index < count; index++) {
+        if (schedules[index].getId() == scheduleId) {
+            schedule = schedules[index];
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int DeviceController::getNextScheduleId() const {
+    Schedule schedules[MAX_SCHEDULES];
+    int count = reminderController.getSchedules(schedules, MAX_SCHEDULES);
+    int nextScheduleId = 1;
+    for (int index = 0; index < count; index++) {
+        if (schedules[index].getId() >= nextScheduleId) {
+            nextScheduleId = schedules[index].getId() + 1;
+        }
+    }
+
+    return nextScheduleId;
+}
+
+int DeviceController::getUnacknowledgedEvents(DoseEvent outputEvents[], int maxEvents) const {
+    int count = min(unacknowledgedEventCount, maxEvents);
+    for (int index = 0; index < count; index++) {
+        outputEvents[index] = unacknowledgedEvents[index];
+    }
+
+    return count;
+}
+
+DateTime DeviceController::getCurrentDateTime() const {
+    return clockModule.getCurrentDateTime();
+}
+
+bool DeviceController::setCurrentDateTime(
+    const String& currentDate,
+    const String& currentTime,
+    const String& dayOfWeek
+) {
+    clockModule.setTime(currentDate, currentTime, dayOfWeek);
+    return true;
 }
 
 bool DeviceController::applyDrawerConfig(int drawerId, const String& medicationName, bool enabled) {

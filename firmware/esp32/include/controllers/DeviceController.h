@@ -18,6 +18,18 @@ public:
 
     void setup();
     void loop();
+    bool isReady() const;
+    bool isStorageReady() const;
+    bool isWifiConnected() const;
+    bool isWebSocketEnabled() const;
+    int getDrawers(Drawer outputDrawers[], int maxDrawers) const;
+    bool getDrawer(int drawerId, Drawer& drawer) const;
+    int getSchedules(Schedule outputSchedules[], int maxSchedules) const;
+    bool getSchedule(int scheduleId, Schedule& schedule) const;
+    int getNextScheduleId() const;
+    int getUnacknowledgedEvents(DoseEvent outputEvents[], int maxEvents) const;
+    DateTime getCurrentDateTime() const;
+    bool setCurrentDateTime(const String& currentDate, const String& currentTime, const String& dayOfWeek);
     bool applyDrawerConfig(int drawerId, const String& medicationName, bool enabled);
     bool applySchedule(const Schedule& schedule);
     bool removeSchedule(int scheduleId);
@@ -42,4 +54,5 @@ private:
     ClockModule clockModule;
     DoseEvent unacknowledgedEvents[MAX_PENDING_EVENTS];
     int unacknowledgedEventCount;
+    bool storageReady;
 };

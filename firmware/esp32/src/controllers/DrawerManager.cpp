@@ -50,6 +50,16 @@ Drawer* DrawerManager::getDrawer(int drawerId) {
     return nullptr;
 }
 
+const Drawer* DrawerManager::getDrawer(int drawerId) const {
+    for (int index = 0; index < drawerCount; index++) {
+        if (drawers[index].getId() == drawerId) {
+            return &drawers[index];
+        }
+    }
+
+    return nullptr;
+}
+
 bool DrawerManager::configureDrawer(int drawerId, const String& medicationName, bool enabled) {
     Drawer* drawer = getDrawer(drawerId);
     if (drawer == nullptr) {
