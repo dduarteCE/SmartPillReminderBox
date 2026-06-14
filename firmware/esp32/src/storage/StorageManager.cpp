@@ -3,6 +3,7 @@
 
 #include "config/PinConfig.h"
 #include "storage/StorageManager.h"
+#include "utils/DoseEventJson.h"
 
 StorageManager::StorageManager(const String& configFilePath) : configFilePath(configFilePath) {}
 
@@ -79,62 +80,6 @@ bool mapDrawerPins(int drawerid, int& ledPin, int& reedSwitchPin) {
         default:
             return false;
     }
-}
-
-String eventTypeToString(DoseEventType type) {
-    switch (type) {
-        case DoseEventType::DrawerOpened:
-            return "DRAWER_OPENED";
-        case DoseEventType::DrawerClosed:
-            return "DRAWER_CLOSED";
-        case DoseEventType::DoseCompleted:
-            return "DOSE_COMPLETED";
-        case DoseEventType::DoseMissed:
-            return "DOSE_MISSED";
-        case DoseEventType::ReminderStarted:
-        default:
-            return "REMINDER_STARTED";
-    }
-}
-
-DoseEventType eventTypeFromString(const String& type) {
-    if (type == "DRAWER_OPENED") {
-        return DoseEventType::DrawerOpened;
-    }
-    if (type == "DRAWER_CLOSED") {
-        return DoseEventType::DrawerClosed;
-    }
-    if (type == "DOSE_COMPLETED") {
-        return DoseEventType::DoseCompleted;
-    }
-    if (type == "DOSE_MISSED") {
-        return DoseEventType::DoseMissed;
-    }
-
-    return DoseEventType::ReminderStarted;
-}
-
-String eventStatusToString(DoseEventStatus status) {
-    switch (status) {
-        case DoseEventStatus::Taken:
-            return "TAKEN";
-        case DoseEventStatus::Missed:
-            return "MISSED";
-        case DoseEventStatus::Pending:
-        default:
-            return "PENDING";
-    }
-}
-
-DoseEventStatus eventStatusFromString(const String& status) {
-    if (status == "TAKEN") {
-        return DoseEventStatus::Taken;
-    }
-    if (status == "MISSED") {
-        return DoseEventStatus::Missed;
-    }
-
-    return DoseEventStatus::Pending;
 }
 
 bool containsEventId(const int eventIds[], int count, int eventId) {
@@ -336,13 +281,13 @@ int StorageManager::loadEvents(DoseEvent events[], int maxEvents) {
 
         events[count] = DoseEvent(
             id,
-            eventTypeFromString(type),
+            doseEventTypeFromString(type),
             scheduleId,
             scheduledTime,
             drawerId,
             medicationName,
             timestamp,
-            eventStatusFromString(status)
+            doseEventStatusFromString(status)
         );
         count++;
     }
@@ -360,13 +305,13 @@ bool StorageManager::saveEvents(const DoseEvent events[], int count) {
     for (int index = 0; index < count; index++) {
         JsonObject eventObject = eventsArray.add<JsonObject>();
         eventObject["id"] = events[index].getId();
-        eventObject["type"] = eventTypeToString(events[index].getType());
+        eventObject["type"] = doseEventTypeToString(events[index].getType());
         eventObject["scheduleId"] = events[index].getScheduleId();
         eventObject["scheduledTime"] = events[index].getScheduledTime();
         eventObject["drawerId"] = events[index].getDrawerId();
         eventObject["medicationName"] = events[index].getMedicationName();
         eventObject["timestamp"] = events[index].getTimestamp();
-        eventObject["status"] = eventStatusToString(events[index].getStatus());
+        eventObject["status"] = doseEventStatusToString(events[index].getStatus());
     }
 
     return writeConfigDocument(doc);
