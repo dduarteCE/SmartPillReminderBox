@@ -30,6 +30,7 @@ public:
 private:
     void sendJsonResponse(int statusCode = 200);
     void handleDynamicRoute();
+    void handleSaveSchedule(int scheduleId, const String& requestBody, bool isUpdate);
     bool extractPathId(const String& uri, const String& prefix, int& id) const;
     bool startAccessPoint();
 

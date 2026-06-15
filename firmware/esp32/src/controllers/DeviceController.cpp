@@ -16,6 +16,7 @@ DeviceController::DeviceController()
 
 void DeviceController::setup() {
     storageReady = storageManager.begin();
+    loadStoredConfiguration();
     drawerManager.begin();
     reminderController.setDrawerManager(&drawerManager);
     reminderController.begin();
@@ -24,7 +25,6 @@ void DeviceController::setup() {
     clockModule.begin();
     webServerController.begin();
     webSocketService.begin();
-    loadStoredConfiguration();
 }
 
 void DeviceController::loop() {
@@ -125,31 +125,61 @@ bool DeviceController::setCurrentDateTime(
 }
 
 bool DeviceController::applyDrawerConfig(int drawerId, const String& medicationName, bool enabled) {
+    Drawer previousDrawer;
+    bool hadPreviousDrawer = getDrawer(drawerId, previousDrawer);
     if (!drawerManager.configureDrawer(drawerId, medicationName, enabled)) {
         return false;
     }
 
-    return persistDrawers();
+    if (persistDrawers()) {
+        return true;
+    }
+
+    if (hadPreviousDrawer) {
+        drawerManager.configureDrawer(
+            drawerId,
+            previousDrawer.getMedicationName(),
+            previousDrawer.isEnabled()
+        );
+    }
+    return false;
 }
 
 bool DeviceController::applySchedule(const Schedule& schedule) {
-    if (reminderController.updateSchedule(schedule)) {
-        return persistSchedules();
+    Schedule previousSchedules[MAX_SCHEDULES];
+    int previousScheduleCount = reminderController.getSchedules(previousSchedules, MAX_SCHEDULES);
+
+    bool scheduleApplied = reminderController.updateSchedule(schedule);
+    if (!scheduleApplied) {
+        scheduleApplied = reminderController.addSchedule(schedule);
     }
 
-    if (!reminderController.addSchedule(schedule)) {
+    if (!scheduleApplied) {
         return false;
     }
 
-    return persistSchedules();
+    if (persistSchedules()) {
+        return true;
+    }
+
+    reminderController.setSchedules(previousSchedules, previousScheduleCount);
+    return false;
 }
 
 bool DeviceController::removeSchedule(int scheduleId) {
+    Schedule previousSchedules[MAX_SCHEDULES];
+    int previousScheduleCount = reminderController.getSchedules(previousSchedules, MAX_SCHEDULES);
+
     if (!reminderController.removeSchedule(scheduleId)) {
         return false;
     }
 
-    return persistSchedules();
+    if (persistSchedules()) {
+        return true;
+    }
+
+    reminderController.setSchedules(previousSchedules, previousScheduleCount);
+    return false;
 }
 
 bool DeviceController::acknowledgeEvents(const int eventIds[], int count) {
@@ -212,7 +242,9 @@ void DeviceController::publishDoseEvent(const DoseEvent& event) {
     }
 
     webSocketService.sendEvent(event);
-    storeUnacknowledgedEvent(event);
+    if (!storeUnacknowledgedEvent(event)) {
+        Serial.println("Failed to store unacknowledged event");
+    }
 }
 
 void DeviceController::loadStoredConfiguration() {
@@ -258,10 +290,28 @@ bool DeviceController::persistEvents() {
 }
 
 bool DeviceController::storeUnacknowledgedEvent(const DoseEvent& event) {
+    DoseEvent previousEvents[MAX_PENDING_EVENTS];
+    int previousEventCount = unacknowledgedEventCount;
+    for (int index = 0; index < previousEventCount; index++) {
+        previousEvents[index] = unacknowledgedEvents[index];
+    }
+
     if (unacknowledgedEventCount >= MAX_PENDING_EVENTS) {
-        return false;
+        Serial.println("Unacknowledged event buffer full; dropping oldest event");
+        for (int index = 0; index < MAX_PENDING_EVENTS - 1; index++) {
+            unacknowledgedEvents[index] = unacknowledgedEvents[index + 1];
+        }
+        unacknowledgedEventCount = MAX_PENDING_EVENTS - 1;
     }
 
     unacknowledgedEvents[unacknowledgedEventCount++] = event;
-    return persistEvents();
+    if (persistEvents()) {
+        return true;
+    }
+
+    unacknowledgedEventCount = previousEventCount;
+    for (int index = 0; index < previousEventCount; index++) {
+        unacknowledgedEvents[index] = previousEvents[index];
+    }
+    return false;
 }

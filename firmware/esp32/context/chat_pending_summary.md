@@ -1,59 +1,78 @@
 # Chat Pending Summary
 
-This note tracks the most important work still pending after the changes completed in this chat.
+This note tracks the work that is still genuinely pending after the changes completed in this chat.
 
-## Networking pending
+## Hardware validation pending
 
-- `WebServerController` now has a real `WebServer`, but WiFi setup is still missing:
-  - no STA/AP mode decision implemented
-  - no credentials/config source
-  - no connection lifecycle handling
-  - no device IP reporting flow
-- `WebSocketService` is still stubbed:
-  - no real `/ws/events` endpoint
-  - no client tracking
-  - no event broadcast over an actual socket transport
+- Run a real board-level test for the full reminder flow:
+  - scheduled reminder starts
+  - correct drawer LED blinks
+  - buzzer activates
+  - LCD shows the expected message
+  - drawer open and close complete the dose
+  - timeout produces `DOSE_MISSED`
+- Confirm the actual LCD I2C address and wiring on the physical module.
+- Confirm buzzer polarity and expected active state on the real board.
+- Validate reed switch behavior on hardware:
+  - correct open and closed readings
+  - no inverted state
+  - no false triggers
 
-## HTTP follow-up pending
+## Pin mapping pending
 
-- The HTTP endpoint logic is implemented, but it still needs real network validation once WiFi is available.
-- Consider extracting remaining JSON serialization helpers from `WebServerController` if the file continues to grow:
-  - drawer response serialization
-  - schedule response serialization
-  - event response serialization
-- Consider cleaning the schedule create/update handler duplication with a shared helper.
+- Replace the placeholder `-1` pin assignments for drawers `3` through `7` with real GPIO mappings if those drawers are part of the prototype.
+- Confirm the final LED and reed switch assignments for every active drawer.
+- Decide whether the first physical prototype supports all `7` drawers or only the currently mapped subset.
 
-## Clock and display pending
+## Clock follow-up pending
 
-- `ClockModule` is still placeholder-only:
-  - no RTC integration
-  - no NTP integration
-  - no persistence of time across power cycles
-- `LCDScreen` is still placeholder-only:
-  - no display driver/library integration
-  - no real rendering to hardware
+- `ClockModule` is now implemented as a software clock, but it still has these open limitations:
+  - no RTC hardware integration
+  - no NTP synchronization
+  - no persistence across reboot or power loss
+- Validate real runtime behavior after calling the time endpoint:
+  - time advances correctly
+  - midnight rollover updates date
+  - day-of-week rollover updates correctly
 
-## ReminderController follow-up
+## WebSocket contract follow-up pending
 
-- Review `ReminderController` for final polish:
-  - naming consistency such as `drawer_open`
-  - possible `nextEventID` start value change from `0` to `1`
-  - optional zero-padding of event times
-- Validate that every state transition matches the intended reminder state machine on hardware.
+- `WebSocketService` now uses a real `WebSocketsServer` and broadcasts events, but the transport shape still needs contract alignment.
+- Current implementation uses port `81` via `WEBSOCKET_PORT`.
+- The contract document describes `ws://<esp32-ip>/ws/events`.
+- Decide whether the client should connect to the current port-based server or whether firmware should be adapted to match the documented `/ws/events` endpoint shape more closely.
 
-## Hardware pending
+## Network and API validation pending
 
-- Replace the placeholder `-1` pins for drawers `3` through `7` with real hardware mappings.
-- Confirm the final LED and reed switch pin assignments.
-- Decide whether all 7 drawers will be active in the first physical prototype or only a subset.
+- Run real end-to-end tests against the ESP32 access point:
+  - `GET /api/health`
+  - `GET /api/drawers`
+  - `GET /api/schedules`
+  - `GET /api/events`
+  - `GET /api/time`
+  - `PUT /api/drawers/{drawerId}`
+  - `POST /api/schedules`
+  - `PUT /api/schedules/{scheduleId}`
+  - `DELETE /api/schedules/{scheduleId}`
+  - `PUT /api/time`
+  - `POST /api/events/ack`
+- Validate client reconnection behavior for WebSocket event delivery.
+- Verify that the mobile or web client can consume the current event payloads without contract drift.
 
-## Validation pending
+## Storage and recovery validation pending
 
-- Run real end-to-end tests over the network once WiFi setup exists.
-- Validate reminder start, drawer open, drawer close, completion, and timeout behavior on hardware.
-- Verify that duplicate-trigger prevention works across real loop timing and restart scenarios.
-- Validate recovery flows for:
-  - restart with stored unacknowledged events
-  - HTTP `GET /api/events`
-  - HTTP `POST /api/events/ack`
-  - reconnect after WebSocket interruption
+- Verify that stored drawers reload correctly after restart.
+- Verify that stored schedules reload correctly after restart.
+- Verify that unacknowledged events reload correctly after restart.
+- Validate the recovery path for:
+  - restart with pending unacknowledged events
+  - `GET /api/events`
+  - `POST /api/events/ack`
+- Verify duplicate-trigger prevention across restart and real loop timing.
+
+## Optional future improvements
+
+- If the project needs a more production-like time source, add either:
+  - RTC module support, or
+  - NTP synchronization when networking mode allows it
+- If `WebServerController` keeps growing, consider extracting more response-building helpers into separate utility code.
