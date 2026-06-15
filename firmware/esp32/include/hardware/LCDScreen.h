@@ -1,10 +1,17 @@
 #pragma once
 
 #include <Arduino.h>
+#include <LiquidCrystal_I2C.h>
+
+#include "config/SystemConfig.h"
 
 class LCDScreen {
 public:
-    LCDScreen(uint8_t address = 0x27, uint8_t columns = 16, uint8_t rows = 2);
+    LCDScreen(
+        uint8_t address = LCD_I2C_ADDRESS,
+        uint8_t columns = LCD_COLUMNS,
+        uint8_t rows = LCD_ROWS
+    );
 
     void begin();
     void clear();
@@ -14,8 +21,12 @@ public:
     void showDoseMissed();
 
 private:
+    void printLine(uint8_t row, const String& message);
+
+    LiquidCrystal_I2C lcd;
     uint8_t address;
     uint8_t columns;
     uint8_t rows;
     String lastMessage;
+    bool initialized;
 };
