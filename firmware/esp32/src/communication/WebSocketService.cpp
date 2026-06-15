@@ -1,41 +1,45 @@
 #include "communication/WebSocketService.h"
 
-WebSocketService::WebSocketService() : connectedClientsCount(0), lastEventJson("") {}
+#include "config/SystemConfig.h"
 
-void WebSocketService::begin() {}
+WebSocketService* WebSocketService::activeInstance = nullptr;
 
-void WebSocketService::handleWebSocket() {}
+WebSocketService::WebSocketService()
+    : webSocketServer(WEBSOCKET_PORT),
+      connectedClientsCount(0),
+      lastEventJson(""),
+      enabled(false) {}
+
+void WebSocketService::begin() {
+    activeInstance = this;
+    webSocketServer.begin();
+    webSocketServer.onEvent(WebSocketService::handleWebSocketEvent);
+    enabled = true;
+}
+
+void WebSocketService::handleWebSocket() {
+    if (!enabled) {
+        return;
+    }
+
+    webSocketServer.loop();
+}
 
 void WebSocketService::loop() {
     handleWebSocket();
 }
 
+bool WebSocketService::isEnabled() const {
+    return enabled;
+}
+
 void WebSocketService::sendEvent(const DoseEvent& event) {
     lastEventJson = event.toJson();
-}
+    if (!enabled) {
+        return;
+    }
 
-void WebSocketService::sendReminderStarted(const DoseEvent& event) {
-    sendEvent(event);
-}
-
-void WebSocketService::sendDrawerOpened(const DoseEvent& event) {
-    sendEvent(event);
-}
-
-void WebSocketService::sendDrawerClosed(const DoseEvent& event) {
-    sendEvent(event);
-}
-
-void WebSocketService::sendDoseCompleted(const DoseEvent& event) {
-    sendEvent(event);
-}
-
-void WebSocketService::sendDoseMissed(const DoseEvent& event) {
-    sendEvent(event);
-}
-
-void WebSocketService::broadcastEvent(const DoseEvent& event) {
-    sendEvent(event);
+    webSocketServer.broadcastTXT(lastEventJson);
 }
 
 bool WebSocketService::hasConnectedClient() const {
@@ -44,4 +48,32 @@ bool WebSocketService::hasConnectedClient() const {
 
 int WebSocketService::connectedClientCount() const {
     return connectedClientsCount;
+}
+
+void WebSocketService::handleWebSocketEvent(
+    uint8_t clientNum,
+    WStype_t type,
+    uint8_t* payload,
+    size_t length
+) {
+    (void)clientNum;
+    (void)payload;
+    (void)length;
+
+    if (activeInstance == nullptr) {
+        return;
+    }
+
+    switch (type) {
+        case WStype_CONNECTED:
+            activeInstance->connectedClientsCount++;
+            break;
+        case WStype_DISCONNECTED:
+            if (activeInstance->connectedClientsCount > 0) {
+                activeInstance->connectedClientsCount--;
+            }
+            break;
+        default:
+            break;
+    }
 }
