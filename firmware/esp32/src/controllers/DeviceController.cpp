@@ -185,6 +185,32 @@ void DeviceController::onReminderEvent(const DoseEvent& event) {
 }
 
 void DeviceController::publishDoseEvent(const DoseEvent& event) {
+    switch (event.getType()) {
+        case DoseEventType::ReminderStarted:
+            drawerManager.highlightDrawer(event.getDrawerId());
+            buzzer.activate();
+            lcdScreen.showReminder(event.getMedicationName(), event.getDrawerId());
+            break;
+        case DoseEventType::DrawerOpened:
+            lcdScreen.showMessage(String("Opened drawer ") + String(event.getDrawerId()));
+            break;
+        case DoseEventType::DrawerClosed:
+            lcdScreen.showMessage(String("Closed drawer ") + String(event.getDrawerId()));
+            break;
+        case DoseEventType::DoseCompleted:
+            drawerManager.stopHighlight(event.getDrawerId());
+            buzzer.deactivate();
+            lcdScreen.showDoseConfirmed();
+            break;
+        case DoseEventType::DoseMissed:
+            drawerManager.stopHighlight(event.getDrawerId());
+            buzzer.deactivate();
+            lcdScreen.showDoseMissed();
+            break;
+        default:
+            break;
+    }
+
     webSocketService.sendEvent(event);
     storeUnacknowledgedEvent(event);
 }

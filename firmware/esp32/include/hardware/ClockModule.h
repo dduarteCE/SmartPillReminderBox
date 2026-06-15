@@ -18,7 +18,10 @@ public:
     void setTime(const String& currentDate, const String& currentTime, const String& dayOfWeek);
     DateTime getCurrentDateTime() const;
     String getDayOfWeek() const;
+    bool isConfigured() const;
 
 private:
-    DateTime currentDateTime;
+    DateTime baseDateTime;
+    unsigned long baseMillis;
+    bool configured;
 };
