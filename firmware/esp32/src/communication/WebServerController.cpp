@@ -413,35 +413,7 @@ void WebServerController::handleCreateSchedule(const String& requestBody) {
         return;
     }
 
-    Schedule schedule;
-    String errorResponse;
-    int scheduleId = deviceController->getNextScheduleId();
-    if (!parseScheduleFromBody(requestBody, scheduleId, schedule, errorResponse)) {
-        lastResponse = errorResponse;
-        return;
-    }
-
-    Drawer drawer;
-    if (!deviceController->getDrawer(schedule.getDrawerId(), drawer)) {
-        lastResponse = buildErrorResponse(
-            "INVALID_DRAWER_ID",
-            "Schedule references drawer " + String(schedule.getDrawerId()) + ", but drawer "
-                + String(schedule.getDrawerId()) + " does not exist"
-        );
-        return;
-    }
-
-    if (!deviceController->applySchedule(schedule)) {
-        lastResponse = buildErrorResponse("INVALID_SCHEDULE", "Schedule could not be created");
-        return;
-    }
-
-    JsonDocument responseDoc;
-    responseDoc["success"] = true;
-    responseDoc["message"] = "Schedule created";
-    JsonObject scheduleObject = responseDoc["schedule"].to<JsonObject>();
-    fillScheduleJson(scheduleObject, schedule);
-    lastResponse = serializeJsonDocument(responseDoc);
+    handleSaveSchedule(deviceController->getNextScheduleId(), requestBody, false);
 }
 
 void WebServerController::handleUpdateSchedule(int scheduleId, const String& requestBody) {
@@ -462,6 +434,10 @@ void WebServerController::handleUpdateSchedule(int scheduleId, const String& req
         return;
     }
 
+    handleSaveSchedule(scheduleId, requestBody, true);
+}
+
+void WebServerController::handleSaveSchedule(int scheduleId, const String& requestBody, bool isUpdate) {
     Schedule schedule;
     String errorResponse;
     if (!parseScheduleFromBody(requestBody, scheduleId, schedule, errorResponse)) {
@@ -480,16 +456,18 @@ void WebServerController::handleUpdateSchedule(int scheduleId, const String& req
     }
 
     if (!deviceController->applySchedule(schedule)) {
-        lastResponse = buildErrorResponse(
-            "SCHEDULE_NOT_FOUND",
-            "Schedule " + String(scheduleId) + " does not exist"
-        );
+        lastResponse = isUpdate
+            ? buildErrorResponse(
+                "SCHEDULE_NOT_FOUND",
+                "Schedule " + String(scheduleId) + " does not exist"
+            )
+            : buildErrorResponse("INVALID_SCHEDULE", "Schedule could not be created");
         return;
     }
 
     JsonDocument responseDoc;
     responseDoc["success"] = true;
-    responseDoc["message"] = "Schedule updated";
+    responseDoc["message"] = isUpdate ? "Schedule updated" : "Schedule created";
     JsonObject scheduleObject = responseDoc["schedule"].to<JsonObject>();
     fillScheduleJson(scheduleObject, schedule);
     lastResponse = serializeJsonDocument(responseDoc);
@@ -589,13 +567,17 @@ void WebServerController::handleAcknowledgeEvents(const String& requestBody) {
         return;
     }
 
+    if (eventIdsArray.size() > MAX_PENDING_EVENTS) {
+        lastResponse = buildErrorResponse(
+            "INVALID_EVENT_IDS",
+            "Too many event IDs were provided"
+        );
+        return;
+    }
+
     int requestedEventIds[MAX_PENDING_EVENTS];
     int requestedCount = 0;
     for (JsonVariant eventIdValue : eventIdsArray) {
-        if (requestedCount >= MAX_PENDING_EVENTS) {
-            break;
-        }
-
         requestedEventIds[requestedCount++] = eventIdValue.as<int>();
     }
 

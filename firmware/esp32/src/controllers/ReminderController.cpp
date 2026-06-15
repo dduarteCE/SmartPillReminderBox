@@ -9,7 +9,7 @@ ReminderController::ReminderController()
       currentScheduledTime({0, 0}),
       state(ReminderState::Idle),
       reminderStartTime(0),
-      nextEventID(0),
+      nextEventID(1),
       lastTriggeredScheduleId(0),
       lastTriggeredHour(-1),
       lastTriggeredMinute(-1),
@@ -132,18 +132,18 @@ void ReminderController::updateReminderState(const DateTime& currentDateTime) {
         return;
     }
 
-    if(drawerManager == nullptr){
+    if (drawerManager == nullptr) {
         return;
     }
 
-    bool drawer_open = drawerManager->isDrawerOpen(currentSchedule.getDrawerId());
+    bool drawerOpen = drawerManager->isDrawerOpen(currentSchedule.getDrawerId());
 
-    if(state == ReminderState::ReminderActive && drawer_open){
+    if (state == ReminderState::ReminderActive && drawerOpen) {
         markDrawerOpened(currentDateTime);
         return;
     }
 
-    if(state == ReminderState::WaitingForClose && !drawer_open){
+    if (state == ReminderState::WaitingForClose && !drawerOpen) {
         markDrawerClosed(currentDateTime);
         return;
     }
@@ -191,7 +191,7 @@ void ReminderController::markDrawerClosed(const DateTime& currentDateTime) {
 }
 
 void ReminderController::markDoseCompleted(const DateTime& currentDateTime) {
-    if(state != ReminderState::WaitingForClose){
+    if (state != ReminderState::WaitingForClose) {
         return;
     }
 
@@ -248,7 +248,15 @@ DoseEvent ReminderController::buildEvent(
         : nullptr;
 
     String medicationName = drawer != nullptr ? drawer->getMedicationName() : "";
-    String scheduledTimeString = String(currentScheduledTime.hour) + ":" + String(currentScheduledTime.minute);
+    char scheduledTimeBuffer[6];
+    snprintf(
+        scheduledTimeBuffer,
+        sizeof(scheduledTimeBuffer),
+        "%02d:%02d",
+        currentScheduledTime.hour,
+        currentScheduledTime.minute
+    );
+    String scheduledTimeString = String(scheduledTimeBuffer);
     String timestampString = currentDateTime.date + "T" + currentDateTime.time;
 
     return DoseEvent(

@@ -1,5 +1,7 @@
 #include "models/DoseEvent.h"
 
+#include <ArduinoJson.h>
+
 DoseEvent::DoseEvent()
     : id(0),
       type(DoseEventType::ReminderStarted),
@@ -61,24 +63,18 @@ DoseEventStatus DoseEvent::getStatus() const {
 }
 
 String DoseEvent::toJson() const {
-    String json = "{";
-    json += "\"id\":";
-    json += String(id);
-    json += ",\"type\":\"";
-    json += typeToString();
-    json += "\",\"scheduleId\":";
-    json += String(scheduleId);
-    json += ",\"scheduledTime\":\"";
-    json += scheduledTime;
-    json += "\",\"drawerId\":";
-    json += String(drawerId);
-    json += ",\"medicationName\":\"";
-    json += medicationName;
-    json += "\",\"timestamp\":\"";
-    json += timestamp;
-    json += "\",\"status\":\"";
-    json += statusToString();
-    json += "\"}";
+    JsonDocument doc;
+    doc["id"] = id;
+    doc["type"] = typeToString();
+    doc["scheduleId"] = scheduleId;
+    doc["scheduledTime"] = scheduledTime;
+    doc["drawerId"] = drawerId;
+    doc["medicationName"] = medicationName;
+    doc["timestamp"] = timestamp;
+    doc["status"] = statusToString();
+
+    String json;
+    serializeJson(doc, json);
     return json;
 }
 
