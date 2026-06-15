@@ -9,3 +9,6 @@ constexpr int MAX_PENDING_EVENTS = 10;
 constexpr unsigned long REMINDER_INTERACTION_WINDOW_MS = 5UL * 60UL * 1000UL;
 
 constexpr const char* CONFIG_FILE_PATH = "/config.json";
+constexpr const char* DEVICE_AP_SSID = "SmartPillBox";
+constexpr const char* DEVICE_AP_PASSWORD = "smartpill123";
+constexpr int WEBSOCKET_PORT = 81;

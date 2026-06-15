@@ -2,6 +2,7 @@
 
 #include <ArduinoJson.h>
 
+#include "config/SystemConfig.h"
 #include "controllers/DeviceController.h"
 #include "utils/DateTimeValidation.h"
 #include "utils/DoseEventJson.h"
@@ -136,9 +137,11 @@ bool parseScheduleFromBody(
 }  // namespace
 
 WebServerController::WebServerController(DeviceController* deviceController)
-    : deviceController(deviceController), server(80), lastResponse("") {}
+    : deviceController(deviceController), server(80), lastResponse(""), wifiReady(false) {}
 
 void WebServerController::begin() {
+    wifiReady = startAccessPoint();
+
     server.on("/api/health", HTTP_GET, [this]() {
         handleGetHealth();
         sendJsonResponse();
@@ -194,6 +197,10 @@ void WebServerController::loop() {
     handleClient();
 }
 
+bool WebServerController::isWifiReady() const {
+    return wifiReady;
+}
+
 void WebServerController::sendJsonResponse(int statusCode) {
     server.send(statusCode, "application/json", lastResponse);
 }
@@ -210,6 +217,11 @@ bool WebServerController::extractPathId(const String& uri, const String& prefix,
 
     id = idPart.toInt();
     return id > 0;
+}
+
+bool WebServerController::startAccessPoint() {
+    WiFi.mode(WIFI_AP);
+    return WiFi.softAP(DEVICE_AP_SSID, DEVICE_AP_PASSWORD);
 }
 
 void WebServerController::handleDynamicRoute() {

@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <WebServer.h>
+#include <WiFi.h>
 
 class DeviceController;
 
@@ -12,6 +13,7 @@ public:
     void begin();
     void handleClient();
     void loop();
+    bool isWifiReady() const;
     void handleGetHealth();
     void handleGetDrawers();
     void handleGetSchedules();
@@ -29,8 +31,10 @@ private:
     void sendJsonResponse(int statusCode = 200);
     void handleDynamicRoute();
     bool extractPathId(const String& uri, const String& prefix, int& id) const;
+    bool startAccessPoint();
 
     DeviceController* deviceController;
     WebServer server;
     String lastResponse;
+    bool wifiReady;
 };

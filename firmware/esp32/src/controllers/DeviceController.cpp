@@ -51,11 +51,11 @@ bool DeviceController::isStorageReady() const {
 }
 
 bool DeviceController::isWifiConnected() const {
-    return true;
+    return webServerController.isWifiReady();
 }
 
 bool DeviceController::isWebSocketEnabled() const {
-    return true;
+    return webSocketService.isEnabled();
 }
 
 int DeviceController::getDrawers(Drawer outputDrawers[], int maxDrawers) const {
