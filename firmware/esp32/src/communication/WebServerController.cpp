@@ -115,11 +115,17 @@ bool parseScheduleFromBody(
         }
     }
 
-    JsonArray daysArray = doc["daysOfWeek"].as<JsonArray>();
-    if (!daysArray.isNull()) {
+    JsonVariant daysVariant = doc["daysOfWeek"];
+    if (!daysVariant.isNull()) {
+        JsonArray daysArray = daysVariant.as<JsonArray>();
+        if (daysArray.isNull()) {
+            errorResponse = buildErrorResponse("INVALID_SCHEDULE", "Schedule contains an invalid day list");
+            return false;
+        }
+
         for (JsonVariant dayValue : daysArray) {
             String dayOfWeek = dayValue.as<String>();
-            if (dayOfWeek.length() == 0) {
+            if (!isValidDayOfWeek(dayOfWeek)) {
                 errorResponse = buildErrorResponse("INVALID_SCHEDULE", "Schedule contains an invalid day");
                 return false;
             }
@@ -523,7 +529,9 @@ void WebServerController::handleSetTime(const String& requestBody) {
     String currentTime = doc["currentTime"] | "";
     String dayOfWeek = doc["dayOfWeek"] | "";
 
-    if (!isValidDateString(currentDate) || !isValidTimeString(currentTime) || dayOfWeek.length() == 0) {
+    if (!isValidDateString(currentDate)
+        || !isValidTimeString(currentTime)
+        || !isValidDayOfWeek(dayOfWeek)) {
         lastResponse = buildErrorResponse("INVALID_TIME", "The provided time format is invalid");
         return;
     }

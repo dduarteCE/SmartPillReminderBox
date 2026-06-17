@@ -49,12 +49,12 @@ String nextDayOfWeek(const String& dayOfWeek) {
     return dayOfWeek;
 }
 
-DateTime advanceDateTime(const DateTime& baseDateTime, unsigned long elapsedMinutes) {
+DateTime advanceDateTime(const DateTime& baseDateTime, uint64_t elapsedMinutes) {
     DateTime current = baseDateTime;
-    unsigned long totalMinutes = static_cast<unsigned long>(baseDateTime.hour) * 60UL
-        + static_cast<unsigned long>(baseDateTime.minute)
+    uint64_t totalMinutes = static_cast<uint64_t>(baseDateTime.hour) * 60ULL
+        + static_cast<uint64_t>(baseDateTime.minute)
         + elapsedMinutes;
-    unsigned long elapsedDays = totalMinutes / MINUTES_PER_DAY;
+    uint64_t elapsedDays = totalMinutes / MINUTES_PER_DAY;
 
     current.hour = (totalMinutes % MINUTES_PER_DAY) / 60UL;
     current.minute = totalMinutes % 60UL;
@@ -68,7 +68,7 @@ DateTime advanceDateTime(const DateTime& baseDateTime, unsigned long elapsedMinu
     int month = parseDatePart(current.date, 5, 2);
     int day = parseDatePart(current.date, 8, 2);
 
-    for (unsigned long index = 0; index < elapsedDays; index++) {
+    for (uint64_t index = 0; index < elapsedDays; index++) {
         day++;
         if (day > daysInMonth(year, month)) {
             day = 1;
@@ -89,7 +89,8 @@ DateTime advanceDateTime(const DateTime& baseDateTime, unsigned long elapsedMinu
 
 ClockModule::ClockModule()
     : baseDateTime({"", "00:00", "", 0, 0}),
-      baseMillis(0),
+      lastMillis(0),
+      accumulatedMillis(0),
       configured(false) {}
 
 void ClockModule::begin() {}
@@ -100,7 +101,8 @@ void ClockModule::setTime(const String& currentDate, const String& currentTime, 
     baseDateTime.dayOfWeek = dayOfWeek;
     baseDateTime.hour = currentTime.substring(0, 2).toInt();
     baseDateTime.minute = currentTime.substring(3, 5).toInt();
-    baseMillis = millis();
+    lastMillis = millis();
+    accumulatedMillis = 0;
     configured = true;
 }
 
@@ -109,7 +111,11 @@ DateTime ClockModule::getCurrentDateTime() const {
         return baseDateTime;
     }
 
-    unsigned long elapsedMinutes = (millis() - baseMillis) / 60000UL;
+    unsigned long now = millis();
+    accumulatedMillis += static_cast<unsigned long>(now - lastMillis);
+    lastMillis = now;
+
+    uint64_t elapsedMinutes = accumulatedMillis / 60000ULL;
     return advanceDateTime(baseDateTime, elapsedMinutes);
 }
 

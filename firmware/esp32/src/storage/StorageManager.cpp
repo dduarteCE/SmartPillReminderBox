@@ -3,6 +3,7 @@
 
 #include "config/PinConfig.h"
 #include "storage/StorageManager.h"
+#include "utils/DateTimeValidation.h"
 #include "utils/DoseEventJson.h"
 
 StorageManager::StorageManager(const String& configFilePath) : configFilePath(configFilePath) {}
@@ -29,16 +30,27 @@ bool StorageManager::readConfigDocument(JsonDocument& doc) {
 }
 
 bool StorageManager::writeConfigDocument(const JsonDocument& doc) {
-    File file = LittleFS.open(configFilePath, "w");
+    String tempFilePath = configFilePath + ".tmp";
+    LittleFS.remove(tempFilePath);
+
+    File file = LittleFS.open(tempFilePath, "w");
     if (!file) {
         Serial.println("Failed to open config.json for writing");
         return false;
     }
 
     size_t bytesWritten = serializeJson(doc, file);
+    file.flush();
     file.close();
     if (bytesWritten == 0) {
         Serial.println("Failed to write config.json");
+        LittleFS.remove(tempFilePath);
+        return false;
+    }
+
+    if (!LittleFS.rename(tempFilePath, configFilePath)) {
+        Serial.println("Failed to replace config.json");
+        LittleFS.remove(tempFilePath);
         return false;
     }
 
@@ -189,16 +201,27 @@ int StorageManager::loadSchedules(Schedule schedules[], int maxSchedules) {
             }
         }
 
-        JsonArray daysOfWeekArray = scheduleObject["daysOfWeek"].as<JsonArray>();
-        if (!daysOfWeekArray.isNull()) {
+        bool hasInvalidDay = false;
+        JsonVariant daysOfWeekVariant = scheduleObject["daysOfWeek"];
+        if (!daysOfWeekVariant.isNull()) {
+            JsonArray daysOfWeekArray = daysOfWeekVariant.as<JsonArray>();
+            if (daysOfWeekArray.isNull()) {
+                continue;
+            }
+
             for (JsonVariant dayValue : daysOfWeekArray) {
                 String dayOfWeek = dayValue.as<String>();
-                if (dayOfWeek.length() == 0) {
-                    continue;
+                if (!isValidDayOfWeek(dayOfWeek)) {
+                    hasInvalidDay = true;
+                    break;
                 }
 
                 schedule.addDayOfWeek(dayOfWeek);
             }
+        }
+
+        if (hasInvalidDay) {
+            continue;
         }
 
         schedules[count] = schedule;
@@ -320,12 +343,12 @@ bool StorageManager::saveEvents(const DoseEvent events[], int count) {
 bool StorageManager::clearAcknowledgedEvents(const int eventIds[], int count) {
     JsonDocument doc;
     if (!readConfigDocument(doc)) {
-        return true;
+        return false;
     }
 
     JsonArray eventsArray = doc["events"].as<JsonArray>();
     if (eventsArray.isNull()) {
-        return true;
+        return false;
     }
 
     for (int index = static_cast<int>(eventsArray.size()) - 1; index >= 0; index--) {

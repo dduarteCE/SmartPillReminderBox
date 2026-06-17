@@ -71,3 +71,14 @@ bool isValidDateString(const String& currentDate) {
 
     return day <= daysInMonth(year, month);
 }
+
+bool isValidDayOfWeek(const String& dayOfWeek) {
+    static const char* validDays[] = {"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
+    for (int index = 0; index < 7; index++) {
+        if (dayOfWeek == validDays[index]) {
+            return true;
+        }
+    }
+
+    return false;
+}
