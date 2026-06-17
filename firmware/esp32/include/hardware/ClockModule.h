@@ -22,6 +22,7 @@ public:
 
 private:
     DateTime baseDateTime;
-    unsigned long baseMillis;
+    mutable unsigned long lastMillis;
+    mutable uint64_t accumulatedMillis;
     bool configured;
 };
