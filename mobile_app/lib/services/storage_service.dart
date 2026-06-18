@@ -144,4 +144,65 @@ class StorageService {
     )
         .toList();
   }
+
+  // ==========================
+// ESP32 SETTINGS
+// ==========================
+
+  static const String esp32IpKey =
+      "esp32_ip";
+
+  static const String esp32PortKey =
+      "esp32_port";
+
+  static Future<void> saveEsp32Ip(
+      String ip) async {
+
+    final prefs =
+    await SharedPreferences
+        .getInstance();
+
+    await prefs.setString(
+      esp32IpKey,
+      ip,
+    );
+  }
+
+  static Future<String> loadEsp32Ip()
+  async {
+
+    final prefs =
+    await SharedPreferences
+        .getInstance();
+
+    return prefs.getString(
+        esp32IpKey) ??
+        "192.168.1.100";
+  }
+
+  static Future<void> saveEsp32Port(
+      String port) async {
+
+    final prefs =
+    await SharedPreferences
+        .getInstance();
+
+    await prefs.setString(
+      esp32PortKey,
+      port,
+    );
+  }
+
+  static Future<String> loadEsp32Port()
+  async {
+
+    final prefs =
+    await SharedPreferences
+        .getInstance();
+
+    return prefs.getString(
+        esp32PortKey) ??
+        "8080";
+  }
+
 }

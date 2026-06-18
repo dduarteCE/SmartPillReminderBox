@@ -3,6 +3,7 @@ import 'screens/medication_page.dart';
 import 'screens/schedule_page.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/history_page.dart';
+import 'screens/settings_page.dart';
 
 void main() {
   runApp(const SmartPillApp());
@@ -42,6 +43,7 @@ class _MainScreenState extends State<MainScreen> {
     const MedicationPage(),
     const SchedulePage(),
     const HistoryPage(),
+    const SettingsPage(),
   ];
 
   @override
@@ -79,6 +81,11 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDestination(
             icon: Icon(Icons.history),
             label: "History",
+          ),
+
+          NavigationDestination(
+            icon: Icon(Icons.settings),
+            label: "Settings",
           ),
         ],
       ),

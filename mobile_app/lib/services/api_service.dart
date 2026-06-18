@@ -1,16 +1,31 @@
+import '../services/storage_service.dart';
+
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'storage_service.dart';
+
 class ApiService {
 
-  static String baseUrl =
-      "http://192.168.1.100";
+  static Future<String> getBaseUrl() async {
+
+    final ip =
+    await StorageService.loadEsp32Ip();
+
+    final port =
+    await StorageService.loadEsp32Port();
+
+    return "http://$ip:$port";
+  }
 
   static Future<Map<String, dynamic>?>
   getDeviceHealth() async {
 
     try {
+
+      final baseUrl =
+      await getBaseUrl();
 
       final response =
       await http.get(
@@ -27,7 +42,10 @@ class ApiService {
       }
 
     } catch (e) {
-      print(e);
+
+      print(
+        "Health check error: $e",
+      );
     }
 
     return null;
