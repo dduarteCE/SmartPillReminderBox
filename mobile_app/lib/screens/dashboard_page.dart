@@ -53,6 +53,48 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
+  Future<void> syncSchedules() async {
+
+    if (schedules.isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "No schedules to sync",
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    bool success = true;
+
+    for (final schedule in schedules) {
+
+      final result =
+      await ApiService.createSchedule(
+        schedule,
+      );
+
+      if (!result) {
+        success = false;
+      }
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? "Schedules synchronized"
+              : "Some schedules failed",
+        ),
+      ),
+    );
+  }
+
   String getNextDose() {
 
     if (schedules.isEmpty) {
@@ -62,7 +104,6 @@ class _DashboardPageState extends State<DashboardPage> {
     List<String> allTimes = [];
 
     for (var schedule in schedules) {
-
       allTimes.addAll(
         schedule.times,
       );
@@ -81,8 +122,22 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
 
     return Scaffold(
+
       appBar: AppBar(
-        title: const Text("Smart Pill Reminder"),
+        title: const Text(
+          "Smart Pill Reminder",
+        ),
+
+        actions: [
+
+          IconButton(
+            icon: const Icon(
+              Icons.sync,
+            ),
+
+            onPressed: syncSchedules,
+          ),
+        ],
       ),
 
       body: RefreshIndicator(
@@ -101,23 +156,37 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(
+              height: 20,
+            ),
 
             Card(
               child: ListTile(
-                leading: const Icon(Icons.medication),
-                title: const Text("Total Medications"),
-                subtitle:
-                Text("${medications.length}"),
+                leading:
+                const Icon(Icons.medication),
+
+                title: const Text(
+                  "Total Medications",
+                ),
+
+                subtitle: Text(
+                  "${medications.length}",
+                ),
               ),
             ),
 
             Card(
               child: ListTile(
-                leading: const Icon(Icons.schedule),
-                title: const Text("Total Schedules"),
-                subtitle:
-                Text("${schedules.length}"),
+                leading:
+                const Icon(Icons.schedule),
+
+                title: const Text(
+                  "Total Schedules",
+                ),
+
+                subtitle: Text(
+                  "${schedules.length}",
+                ),
               ),
             ),
 
@@ -125,7 +194,11 @@ class _DashboardPageState extends State<DashboardPage> {
               child: ListTile(
                 leading:
                 const Icon(Icons.access_time),
-                title: const Text("Next Dose"),
+
+                title: const Text(
+                  "Next Dose",
+                ),
+
                 subtitle: Text(
                   getNextDose(),
                 ),

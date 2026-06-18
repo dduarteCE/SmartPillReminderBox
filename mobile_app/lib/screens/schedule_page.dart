@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../services/api_service.dart';
 import '../models/schedule.dart';
 import '../models/medication.dart';
 import '../services/storage_service.dart';
@@ -254,8 +254,7 @@ class _SchedulePageState
                 ElevatedButton(
                   onPressed: () async {
 
-                    if (selectedTimes
-                        .isEmpty) {
+                    if (selectedTimes.isEmpty) {
 
                       ScaffoldMessenger
                           .of(context)
@@ -270,8 +269,7 @@ class _SchedulePageState
                       return;
                     }
 
-                    if (selectedDays
-                        .isEmpty) {
+                    if (selectedDays.isEmpty) {
 
                       ScaffoldMessenger
                           .of(context)
@@ -286,21 +284,44 @@ class _SchedulePageState
                       return;
                     }
 
+                    final newSchedule =
+                    Schedule(
+                      drawerId:
+                      selectedMedication.drawerId,
+
+                      times:
+                      selectedTimes,
+
+                      daysOfWeek:
+                      selectedDays,
+
+                      enabled:
+                      true,
+                    );
+
+                    final sentToEsp32 =
+                    await ApiService.createSchedule(
+                      newSchedule,
+                    );
+
+                    if (!sentToEsp32) {
+
+                      if (mounted) {
+
+                        ScaffoldMessenger
+                            .of(context)
+                            .showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Could not send schedule to ESP32. Saved locally only.",
+                            ),
+                          ),
+                        );
+                      }
+                    }
+
                     schedules.add(
-                      Schedule(
-                        drawerId:
-                        selectedMedication
-                            .drawerId,
-
-                        times:
-                        selectedTimes,
-
-                        daysOfWeek:
-                        selectedDays,
-
-                        enabled:
-                        true,
-                      ),
+                      newSchedule,
                     );
 
                     await StorageService
