@@ -299,26 +299,7 @@ class _SchedulePageState
                       true,
                     );
 
-                    final sentToEsp32 =
-                    await ApiService.createSchedule(
-                      newSchedule,
-                    );
-
-                    if (!sentToEsp32) {
-
-                      if (mounted) {
-
-                        ScaffoldMessenger
-                            .of(context)
-                            .showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              "Could not send schedule to ESP32. Saved locally only.",
-                            ),
-                          ),
-                        );
-                      }
-                    }
+                    // Guardar localmente primero
 
                     schedules.add(
                       newSchedule,
@@ -335,6 +316,27 @@ class _SchedulePageState
 
                       Navigator.pop(
                         context,
+                      );
+                    }
+
+                    // Intentar sincronizar después
+
+                    final sentToEsp32 =
+                    await ApiService.createSchedule(
+                      newSchedule,
+                    );
+
+                    if (!sentToEsp32 &&
+                        mounted) {
+
+                      ScaffoldMessenger
+                          .of(context)
+                          .showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Schedule saved locally. ESP32 unavailable.",
+                          ),
+                        ),
                       );
                     }
                   },

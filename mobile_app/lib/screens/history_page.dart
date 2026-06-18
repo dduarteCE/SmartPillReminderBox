@@ -204,6 +204,71 @@ class _HistoryPageState
     );
   }
 
+  Future<void> clearHistory() async {
+
+    final confirm =
+    await showDialog<bool>(
+      context: context,
+
+      builder: (context) {
+
+        return AlertDialog(
+
+          title: const Text(
+            "Clear History",
+          ),
+
+          content: const Text(
+            "Delete all dose records?",
+          ),
+
+          actions: [
+
+            TextButton(
+              onPressed: () {
+
+                Navigator.pop(
+                  context,
+                  false,
+                );
+              },
+
+              child: const Text(
+                "Cancel",
+              ),
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+
+                Navigator.pop(
+                  context,
+                  true,
+                );
+              },
+
+              child: const Text(
+                "Delete",
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    records.clear();
+
+    await StorageService.saveHistory(
+      records,
+    );
+
+    setState(() {});
+  }
+
   Icon getStatusIcon(
       String status) {
 
@@ -225,8 +290,18 @@ class _HistoryPageState
 
     return Scaffold(
       appBar: AppBar(
-        title:
-        const Text("Dose History"),
+        title: const Text("Dose History"),
+
+        actions: [
+
+          IconButton(
+            icon: const Icon(
+              Icons.delete_sweep,
+            ),
+
+            onPressed: clearHistory,
+          ),
+        ],
       ),
 
       body: records.isEmpty
@@ -274,6 +349,7 @@ class _HistoryPageState
         child:
         const Icon(Icons.add),
       ),
+
     );
   }
 }
