@@ -106,21 +106,110 @@ class _DashboardPageState extends State<DashboardPage> {
       return "No schedules";
     }
 
-    List<String> allTimes = [];
+    const weekDays = [
+      "MON",
+      "TUE",
+      "WED",
+      "THU",
+      "FRI",
+      "SAT",
+      "SUN",
+    ];
 
-    for (var schedule in schedules) {
-      allTimes.addAll(
-        schedule.times,
-      );
+    final now = DateTime.now();
+
+    int currentDayIndex =
+        now.weekday - 1;
+
+    int currentMinutes =
+        now.hour * 60 + now.minute;
+
+    String? nextDay;
+    int? nextTimeMinutes;
+    int? bestOffset;
+
+    for (final schedule in schedules) {
+
+      if (!schedule.enabled) {
+        continue;
+      }
+
+      for (final day in schedule.daysOfWeek) {
+
+        int dayIndex =
+        weekDays.indexOf(day);
+
+        if (dayIndex == -1) {
+          continue;
+        }
+
+        int dayOffset =
+            dayIndex - currentDayIndex;
+
+        if (dayOffset < 0) {
+          dayOffset += 7;
+        }
+
+        for (final time in schedule.times) {
+
+          final parts =
+          time.split(":");
+
+          int minutes =
+              int.parse(parts[0]) * 60 +
+                  int.parse(parts[1]);
+
+          int totalOffset =
+              dayOffset * 1440;
+
+          if (dayOffset == 0) {
+
+            if (minutes < currentMinutes) {
+              continue;
+            }
+
+            totalOffset +=
+                minutes -
+                    currentMinutes;
+
+          } else {
+
+            totalOffset +=
+                minutes;
+          }
+
+          if (bestOffset == null ||
+              totalOffset < bestOffset) {
+
+            bestOffset =
+                totalOffset;
+
+            nextDay = day;
+
+            nextTimeMinutes =
+                minutes;
+          }
+        }
+      }
     }
 
-    if (allTimes.isEmpty) {
+    if (nextDay == null ||
+        nextTimeMinutes == null) {
+
       return "No schedules";
     }
 
-    allTimes.sort();
+    final hour =
+    (nextTimeMinutes ~/ 60)
+        .toString()
+        .padLeft(2, '0');
 
-    return allTimes.first;
+    final minute =
+    (nextTimeMinutes % 60)
+        .toString()
+        .padLeft(2, '0');
+
+    return "$nextDay $hour:$minute";
   }
 
   @override
