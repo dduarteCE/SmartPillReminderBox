@@ -4,9 +4,18 @@ import 'screens/schedule_page.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/history_page.dart';
 import 'screens/settings_page.dart';
+import 'services/websocket_service.dart';
 
-void main() {
-  runApp(const SmartPillApp());
+void main() async {
+
+  WidgetsFlutterBinding
+      .ensureInitialized();
+
+  await WebSocketService.connect();
+
+  runApp(
+    const SmartPillApp(),
+  );
 }
 
 class SmartPillApp extends StatelessWidget {
