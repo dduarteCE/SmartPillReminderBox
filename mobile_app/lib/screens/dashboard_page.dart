@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/medication.dart';
 import '../models/schedule.dart';
 import '../services/storage_service.dart';
+import '../services/api_service.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -15,6 +16,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   List<Medication> medications = [];
   List<Schedule> schedules = [];
+
+  String esp32Status = "Disconnected";
 
   @override
   void initState() {
@@ -30,9 +33,23 @@ class _DashboardPageState extends State<DashboardPage> {
     final loadedSchedules =
     await StorageService.loadSchedules();
 
+    final health =
+    await ApiService.getDeviceHealth();
+
     setState(() {
+
       medications = loadedMedications;
       schedules = loadedSchedules;
+
+      if (health != null &&
+          health["success"] == true) {
+
+        esp32Status = "Connected";
+
+      } else {
+
+        esp32Status = "Disconnected";
+      }
     });
   }
 
@@ -115,11 +132,21 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
 
-            const Card(
+            Card(
               child: ListTile(
-                leading: Icon(Icons.wifi),
-                title: Text("ESP32 Status"),
-                subtitle: Text("Disconnected"),
+                leading: Icon(
+                  esp32Status == "Connected"
+                      ? Icons.wifi
+                      : Icons.wifi_off,
+                ),
+
+                title: const Text(
+                  "ESP32 Status",
+                ),
+
+                subtitle: Text(
+                  esp32Status,
+                ),
               ),
             ),
           ],
