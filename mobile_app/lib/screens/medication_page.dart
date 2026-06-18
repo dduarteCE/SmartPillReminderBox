@@ -38,8 +38,8 @@ class _MedicationPageState extends State<MedicationPage> {
     final dosageController =
     TextEditingController();
 
-    final drawerController =
-    TextEditingController();
+    int selectedDrawer = 1;
+
 
     await showDialog(
       context: context,
@@ -69,14 +69,39 @@ class _MedicationPageState extends State<MedicationPage> {
                   ),
                 ),
 
-                TextField(
-                  controller: drawerController,
-                  keyboardType:
-                  TextInputType.number,
+                StatefulBuilder(
+                  builder: (
+                      context,
+                      setDialogState,
+                      ) {
 
-                  decoration: const InputDecoration(
-                    labelText: "Drawer Number",
-                  ),
+                    return DropdownButtonFormField<int>(
+                      value: selectedDrawer,
+
+                      decoration:
+                      const InputDecoration(
+                        labelText: "Drawer",
+                      ),
+
+                      items: List.generate(
+                        7,
+                            (index) =>
+                            DropdownMenuItem(
+                              value: index + 1,
+                              child: Text(
+                                "Drawer ${index + 1}",
+                              ),
+                            ),
+                      ),
+
+                      onChanged: (value) {
+
+                        setDialogState(() {
+                          selectedDrawer = value!;
+                        });
+                      },
+                    );
+                  },
                 ),
               ],
             ),
@@ -102,9 +127,7 @@ class _MedicationPageState extends State<MedicationPage> {
                   Medication(
                     name: nameController.text,
                     dosage: dosageController.text,
-                    drawerId: int.tryParse(
-                        drawerController.text) ??
-                        1,
+                    drawerId: selectedDrawer,
                   ),
                 );
 
