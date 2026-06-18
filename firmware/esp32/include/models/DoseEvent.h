@@ -7,7 +7,8 @@ enum class DoseEventType {
     DrawerOpened,
     DrawerClosed,
     DoseCompleted,
-    DoseMissed
+    DoseMissed,
+    DrawerEmpty
 };
 
 enum class DoseEventStatus {

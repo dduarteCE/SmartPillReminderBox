@@ -10,6 +10,8 @@ String doseEventTypeToString(DoseEventType type) {
             return "DOSE_COMPLETED";
         case DoseEventType::DoseMissed:
             return "DOSE_MISSED";
+        case DoseEventType::DrawerEmpty:
+            return "DRAWER_EMPTY";
         case DoseEventType::ReminderStarted:
         default:
             return "REMINDER_STARTED";
@@ -28,6 +30,9 @@ DoseEventType doseEventTypeFromString(const String& type) {
     }
     if (type == "DOSE_MISSED") {
         return DoseEventType::DoseMissed;
+    }
+    if (type == "DRAWER_EMPTY") {
+        return DoseEventType::DrawerEmpty;
     }
 
     return DoseEventType::ReminderStarted;

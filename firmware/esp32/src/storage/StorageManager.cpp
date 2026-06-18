@@ -130,13 +130,14 @@ int StorageManager::loadDrawers(Drawer drawers[], int maxDrawers) {
 
         String medicationName = drawer["medicationName"] | "";
         bool enabled = drawer["enabled"] | false;
+        int pillCount = drawer["pillCount"] | 0;
         int ledPin;
         int reedSwitchPin;
         if (!mapDrawerPins(id, ledPin, reedSwitchPin)) {
             continue;
         }
 
-        drawers[count] = Drawer(id, medicationName, enabled, ledPin, reedSwitchPin);
+        drawers[count] = Drawer(id, medicationName, enabled, ledPin, reedSwitchPin, pillCount);
         count++;
     }
 
@@ -155,6 +156,7 @@ bool StorageManager::saveDrawers(const Drawer drawers[], int count) {
         drawerObject["id"] = drawers[index].getId();
         drawerObject["medicationName"] = drawers[index].getMedicationName();
         drawerObject["enabled"] = drawers[index].isEnabled();
+        drawerObject["pillCount"] = drawers[index].getPillCount();
     }
 
     return writeConfigDocument(doc);

@@ -238,6 +238,10 @@ void ReminderController::setNextEventId(int nextEventId) {
     }
 }
 
+int ReminderController::reserveNextEventId() {
+    return nextEventID++;
+}
+
 DoseEvent ReminderController::buildEvent(
     DoseEventType type,
     DoseEventStatus status,

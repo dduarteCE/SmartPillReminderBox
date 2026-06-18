@@ -22,6 +22,7 @@ public:
 
 private:
     void printLine(uint8_t row, const String& message);
+    void printSerialScreen(const String& line1, const String& line2 = "");
 
     LiquidCrystal_I2C lcd;
     uint8_t address;
