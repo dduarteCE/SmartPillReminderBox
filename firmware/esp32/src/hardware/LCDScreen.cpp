@@ -17,6 +17,7 @@ void LCDScreen::begin() {
 
 void LCDScreen::clear() {
     lastMessage = "";
+    printSerialScreen("");
     if (initialized) {
         lcd.clear();
     }
@@ -24,6 +25,7 @@ void LCDScreen::clear() {
 
 void LCDScreen::showReminder(const String& medicationName, int drawerId) {
     lastMessage = String("Take ") + medicationName + " D" + String(drawerId);
+    printSerialScreen(medicationName, String("Drawer ") + String(drawerId));
     if (!initialized) {
         return;
     }
@@ -35,6 +37,7 @@ void LCDScreen::showReminder(const String& medicationName, int drawerId) {
 
 void LCDScreen::showMessage(const String& message) {
     lastMessage = message;
+    printSerialScreen(message);
     if (!initialized) {
         return;
     }
@@ -45,6 +48,7 @@ void LCDScreen::showMessage(const String& message) {
 
 void LCDScreen::showDoseConfirmed() {
     lastMessage = "Dose confirmed";
+    printSerialScreen("Dose confirmed", "Thank you");
     if (!initialized) {
         return;
     }
@@ -56,6 +60,7 @@ void LCDScreen::showDoseConfirmed() {
 
 void LCDScreen::showDoseMissed() {
     lastMessage = "Dose missed";
+    printSerialScreen("Dose missed", "Check drawer");
     if (!initialized) {
         return;
     }
@@ -76,4 +81,14 @@ void LCDScreen::printLine(uint8_t row, const String& message) {
     for (int index = line.length(); index < columns; index++) {
         lcd.print(" ");
     }
+}
+
+void LCDScreen::printSerialScreen(const String& line1, const String& line2) {
+    Serial.print("[LCD] ");
+    Serial.print(line1);
+    if (line2.length() > 0) {
+        Serial.print(" | ");
+        Serial.print(line2);
+    }
+    Serial.println();
 }

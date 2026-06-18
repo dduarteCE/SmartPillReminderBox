@@ -30,6 +30,7 @@ void fillDrawerJson(JsonObject drawerObject, const Drawer& drawer) {
     drawerObject["id"] = drawer.getId();
     drawerObject["medicationName"] = drawer.getMedicationName();
     drawerObject["enabled"] = drawer.isEnabled();
+    drawerObject["pillCount"] = drawer.getPillCount();
 }
 
 void fillScheduleJson(JsonObject scheduleObject, const Schedule& schedule) {
@@ -392,7 +393,13 @@ void WebServerController::handleUpdateDrawer(int drawerId, const String& request
 
     String medicationName = doc["medicationName"] | "";
     bool enabled = doc["enabled"] | false;
-    if (!deviceController->applyDrawerConfig(drawerId, medicationName, enabled)) {
+    int pillCount = doc["pillCount"] | drawer.getPillCount();
+    if (pillCount < 0) {
+        lastResponse = buildErrorResponse("INVALID_DRAWER", "Drawer pillCount cannot be negative");
+        return;
+    }
+
+    if (!deviceController->applyDrawerConfig(drawerId, medicationName, enabled, pillCount)) {
         lastResponse = buildErrorResponse(
             "DRAWER_NOT_FOUND",
             "Drawer " + String(drawerId) + " does not exist"

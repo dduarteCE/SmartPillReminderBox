@@ -42,6 +42,7 @@ public:
     void resetCurrentReminder();
     ReminderState getState() const;
     void setNextEventId(int nextEventId);
+    int reserveNextEventId();
     bool hasPendingEvent() const;
     DoseEvent popPendingEvent();
 

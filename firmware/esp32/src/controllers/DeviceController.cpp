@@ -124,10 +124,15 @@ bool DeviceController::setCurrentDateTime(
     return true;
 }
 
-bool DeviceController::applyDrawerConfig(int drawerId, const String& medicationName, bool enabled) {
+bool DeviceController::applyDrawerConfig(
+    int drawerId,
+    const String& medicationName,
+    bool enabled,
+    int pillCount
+) {
     Drawer previousDrawer;
     bool hadPreviousDrawer = getDrawer(drawerId, previousDrawer);
-    if (!drawerManager.configureDrawer(drawerId, medicationName, enabled)) {
+    if (!drawerManager.configureDrawer(drawerId, medicationName, enabled, pillCount)) {
         return false;
     }
 
@@ -139,7 +144,8 @@ bool DeviceController::applyDrawerConfig(int drawerId, const String& medicationN
         drawerManager.configureDrawer(
             drawerId,
             previousDrawer.getMedicationName(),
-            previousDrawer.isEnabled()
+            previousDrawer.isEnabled(),
+            previousDrawer.getPillCount()
         );
     }
     return false;
@@ -237,6 +243,9 @@ void DeviceController::publishDoseEvent(const DoseEvent& event) {
             buzzer.deactivate();
             lcdScreen.showDoseMissed();
             break;
+        case DoseEventType::DrawerEmpty:
+            lcdScreen.showMessage(String("Drawer ") + String(event.getDrawerId()) + " empty");
+            break;
         default:
             break;
     }
@@ -245,6 +254,40 @@ void DeviceController::publishDoseEvent(const DoseEvent& event) {
     if (!storeUnacknowledgedEvent(event)) {
         Serial.println("Failed to store unacknowledged event");
     }
+
+    if (event.getType() == DoseEventType::DoseCompleted) {
+        handleDoseCompletedInventory(event);
+    }
+}
+
+void DeviceController::handleDoseCompletedInventory(const DoseEvent& event) {
+    bool drawerBecameEmpty = false;
+    if (!drawerManager.recordDoseTaken(event.getDrawerId(), drawerBecameEmpty)) {
+        return;
+    }
+
+    if (!persistDrawers()) {
+        Serial.println("Failed to persist updated pill count");
+    }
+
+    if (drawerBecameEmpty) {
+        publishDrawerEmptyEvent(event);
+    }
+}
+
+void DeviceController::publishDrawerEmptyEvent(const DoseEvent& sourceEvent) {
+    DoseEvent drawerEmptyEvent(
+        reminderController.reserveNextEventId(),
+        DoseEventType::DrawerEmpty,
+        sourceEvent.getScheduleId(),
+        sourceEvent.getScheduledTime(),
+        sourceEvent.getDrawerId(),
+        sourceEvent.getMedicationName(),
+        sourceEvent.getTimestamp(),
+        DoseEventStatus::Pending
+    );
+
+    publishDoseEvent(drawerEmptyEvent);
 }
 
 void DeviceController::loadStoredConfiguration() {

@@ -30,7 +30,7 @@ public:
     int getUnacknowledgedEvents(DoseEvent outputEvents[], int maxEvents) const;
     DateTime getCurrentDateTime() const;
     bool setCurrentDateTime(const String& currentDate, const String& currentTime, const String& dayOfWeek);
-    bool applyDrawerConfig(int drawerId, const String& medicationName, bool enabled);
+    bool applyDrawerConfig(int drawerId, const String& medicationName, bool enabled, int pillCount);
     bool applySchedule(const Schedule& schedule);
     bool removeSchedule(int scheduleId);
     bool acknowledgeEvents(const int eventIds[], int count);
@@ -43,6 +43,8 @@ private:
     bool persistSchedules();
     bool persistEvents();
     bool storeUnacknowledgedEvent(const DoseEvent& event);
+    void handleDoseCompletedInventory(const DoseEvent& event);
+    void publishDrawerEmptyEvent(const DoseEvent& sourceEvent);
 
     ReminderController reminderController;
     DrawerManager drawerManager;
