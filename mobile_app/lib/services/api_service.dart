@@ -32,9 +32,9 @@ class ApiService {
 
       final response =
       await http.get(
-        Uri.parse(
-          "$baseUrl/api/health",
-        ),
+        Uri.parse("$baseUrl/api/health"),
+      ).timeout(
+        const Duration(seconds: 3),
       );
 
       if (response.statusCode == 200) {

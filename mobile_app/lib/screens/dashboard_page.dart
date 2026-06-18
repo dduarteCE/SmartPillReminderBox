@@ -33,13 +33,18 @@ class _DashboardPageState extends State<DashboardPage> {
     final loadedSchedules =
     await StorageService.loadSchedules();
 
-    final health =
-    await ApiService.getDeviceHealth();
-
     setState(() {
 
       medications = loadedMedications;
       schedules = loadedSchedules;
+    });
+
+    final health =
+    await ApiService.getDeviceHealth();
+
+    if (!mounted) return;
+
+    setState(() {
 
       if (health != null &&
           health["success"] == true) {
