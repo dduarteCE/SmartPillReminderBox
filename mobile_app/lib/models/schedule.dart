@@ -1,17 +1,26 @@
 class Schedule {
 
-  String medicationName;
-  String time;
+  int drawerId;
+
+  List<String> times;
+
+  List<String> daysOfWeek;
+
+  bool enabled;
 
   Schedule({
-    required this.medicationName,
-    required this.time,
+    required this.drawerId,
+    required this.times,
+    required this.daysOfWeek,
+    required this.enabled,
   });
 
   Map<String, dynamic> toJson() {
     return {
-      'medicationName': medicationName,
-      'time': time,
+      'drawerId': drawerId,
+      'times': times,
+      'daysOfWeek': daysOfWeek,
+      'enabled': enabled,
     };
   }
 
@@ -19,8 +28,17 @@ class Schedule {
       Map<String, dynamic> json) {
 
     return Schedule(
-      medicationName: json['medicationName'],
-      time: json['time'],
+      drawerId: json['drawerId'],
+
+      times: List<String>.from(
+        json['times'],
+      ),
+
+      daysOfWeek: List<String>.from(
+        json['daysOfWeek'],
+      ),
+
+      enabled: json['enabled'],
     );
   }
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../models/schedule.dart';
-import '../services/storage_service.dart';
 import '../models/medication.dart';
+import '../services/storage_service.dart';
 
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
@@ -32,12 +33,11 @@ class _SchedulePageState
     await StorageService.loadMedications();
 
     setState(() {
-
       schedules = loadedSchedules;
-
       medications = loadedMedications;
     });
   }
+
   Future<void> addSchedule() async {
 
     if (medications.isEmpty) {
@@ -54,14 +54,22 @@ class _SchedulePageState
       return;
     }
 
-    String selectedMedication =
-        medications.first.name;
+    Medication selectedMedication =
+        medications.first;
 
-    TimeOfDay selectedTime =
-    const TimeOfDay(
-      hour: 8,
-      minute: 0,
-    );
+    List<String> selectedTimes = [];
+
+    List<String> selectedDays = [];
+
+    const days = [
+      "MON",
+      "TUE",
+      "WED",
+      "THU",
+      "FRI",
+      "SAT",
+      "SUN",
+    ];
 
     await showDialog(
       context: context,
@@ -70,7 +78,8 @@ class _SchedulePageState
 
         return StatefulBuilder(
 
-          builder: (context, setDialogState) {
+          builder:
+              (context, setDialogState) {
 
             return AlertDialog(
 
@@ -78,79 +87,163 @@ class _SchedulePageState
                 "New Schedule",
               ),
 
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
+              content:
+              SingleChildScrollView(
+                child: Column(
+                  mainAxisSize:
+                  MainAxisSize.min,
 
-                children: [
+                  children: [
 
-                  DropdownButton<String>(
-                    value: selectedMedication,
+                    DropdownButton<Medication>(
+                      value:
+                      selectedMedication,
 
-                    isExpanded: true,
+                      isExpanded: true,
 
-                    items: medications
-                        .map(
-                          (med) =>
-                          DropdownMenuItem(
-                            value: med.name,
+                      items:
+                      medications
+                          .map(
+                            (med) =>
+                            DropdownMenuItem<
+                                Medication>(
+                              value: med,
 
-                            child: Text(
-                              med.name,
+                              child: Text(
+                                med.name,
+                              ),
                             ),
-                          ),
-                    )
-                        .toList(),
+                      )
+                          .toList(),
 
-                    onChanged: (value) {
-
-                      setDialogState(() {
-                        selectedMedication =
-                        value!;
-                      });
-                    },
-                  ),
-
-                  const SizedBox(
-                    height: 20,
-                  ),
-
-                  Text(
-                    selectedTime.format(
-                      context,
-                    ),
-                  ),
-
-                  ElevatedButton(
-                    onPressed: () async {
-
-                      final picked =
-                      await showTimePicker(
-                        context: context,
-                        initialTime:
-                        selectedTime,
-                      );
-
-                      if (picked != null) {
+                      onChanged: (value) {
 
                         setDialogState(() {
-                          selectedTime =
-                              picked;
+                          selectedMedication =
+                          value!;
                         });
-                      }
-                    },
-
-                    child: const Text(
-                      "Select Time",
+                      },
                     ),
-                  ),
-                ],
+
+                    const SizedBox(
+                      height: 20,
+                    ),
+
+                    Wrap(
+                      spacing: 8,
+
+                      children:
+                      selectedTimes
+                          .map(
+                            (time) =>
+                            Chip(
+                              label: Text(
+                                time,
+                              ),
+                            ),
+                      )
+                          .toList(),
+                    ),
+
+                    ElevatedButton(
+                      onPressed: () async {
+
+                        final picked =
+                        await showTimePicker(
+                          context:
+                          context,
+
+                          initialTime:
+                          const TimeOfDay(
+                            hour: 8,
+                            minute: 0,
+                          ),
+                        );
+
+                        if (picked !=
+                            null) {
+
+                          String
+                          formattedTime =
+                              "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
+
+                          setDialogState(
+                                () {
+                              selectedTimes
+                                  .add(
+                                formattedTime,
+                              );
+                            },
+                          );
+                        }
+                      },
+
+                      child:
+                      const Text(
+                        "Add Time",
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 20,
+                    ),
+
+                    Wrap(
+                      spacing: 6,
+
+                      children:
+                      days.map((day) {
+
+                        bool selected =
+                        selectedDays
+                            .contains(
+                          day,
+                        );
+
+                        return FilterChip(
+                          label:
+                          Text(day),
+
+                          selected:
+                          selected,
+
+                          onSelected:
+                              (value) {
+
+                            setDialogState(
+                                  () {
+
+                                if (value) {
+
+                                  selectedDays
+                                      .add(
+                                    day,
+                                  );
+
+                                } else {
+
+                                  selectedDays
+                                      .remove(
+                                    day,
+                                  );
+                                }
+                              },
+                            );
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
               ),
 
               actions: [
 
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.pop(
+                      context,
+                    );
                   },
 
                   child: const Text(
@@ -161,13 +254,52 @@ class _SchedulePageState
                 ElevatedButton(
                   onPressed: () async {
 
+                    if (selectedTimes
+                        .isEmpty) {
+
+                      ScaffoldMessenger
+                          .of(context)
+                          .showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Add at least one time",
+                          ),
+                        ),
+                      );
+
+                      return;
+                    }
+
+                    if (selectedDays
+                        .isEmpty) {
+
+                      ScaffoldMessenger
+                          .of(context)
+                          .showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Select at least one day",
+                          ),
+                        ),
+                      );
+
+                      return;
+                    }
+
                     schedules.add(
                       Schedule(
-                        medicationName:
-                        selectedMedication,
+                        drawerId:
+                        selectedMedication
+                            .drawerId,
 
-                        time:
-                        "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}",
+                        times:
+                        selectedTimes,
+
+                        daysOfWeek:
+                        selectedDays,
+
+                        enabled:
+                        true,
                       ),
                     );
 
@@ -179,6 +311,7 @@ class _SchedulePageState
                     setState(() {});
 
                     if (mounted) {
+
                       Navigator.pop(
                         context,
                       );
@@ -213,6 +346,7 @@ class _SchedulePageState
   Widget build(BuildContext context) {
 
     return Scaffold(
+
       appBar: AppBar(
         title:
         const Text("Schedules"),
@@ -227,6 +361,7 @@ class _SchedulePageState
       )
 
           : ListView.builder(
+
         itemCount:
         schedules.length,
 
@@ -238,22 +373,24 @@ class _SchedulePageState
 
           return Card(
             child: ListTile(
+
               leading:
               const Icon(
                 Icons.schedule,
               ),
 
               title: Text(
-                schedule
-                    .medicationName,
+                "Drawer ${schedule.drawerId}",
               ),
 
               subtitle: Text(
-                schedule.time,
+                "Times: ${schedule.times.join(', ')}\n"
+                    "Days: ${schedule.daysOfWeek.join(', ')}",
               ),
 
               trailing:
               IconButton(
+
                 icon:
                 const Icon(
                   Icons.delete,
@@ -261,7 +398,8 @@ class _SchedulePageState
 
                 onPressed: () {
                   deleteSchedule(
-                      index);
+                    index,
+                  );
                 },
               ),
             ),

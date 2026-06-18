@@ -42,12 +42,22 @@ class _DashboardPageState extends State<DashboardPage> {
       return "No schedules";
     }
 
-    List<String> times =
-    schedules.map((s) => s.time).toList();
+    List<String> allTimes = [];
 
-    times.sort();
+    for (var schedule in schedules) {
 
-    return times.first;
+      allTimes.addAll(
+        schedule.times,
+      );
+    }
+
+    if (allTimes.isEmpty) {
+      return "No schedules";
+    }
+
+    allTimes.sort();
+
+    return allTimes.first;
   }
 
   @override
