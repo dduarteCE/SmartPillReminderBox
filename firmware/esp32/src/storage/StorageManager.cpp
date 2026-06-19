@@ -115,6 +115,49 @@ bool containsEventId(const int eventIds[], int count, int eventId) {
     return false;
 }
 
+void writeDrawersArray(JsonDocument& doc, const Drawer drawers[], int count) {
+    JsonArray drawersArray = doc["drawers"].to<JsonArray>();
+    for (int index = 0; index < count; index++) {
+        JsonObject drawerObject = drawersArray.add<JsonObject>();
+        drawerObject["id"] = drawers[index].getId();
+        drawerObject["medicationName"] = drawers[index].getMedicationName();
+        drawerObject["enabled"] = drawers[index].isEnabled();
+        drawerObject["pillCount"] = drawers[index].getPillCount();
+    }
+}
+
+void writeSchedulesArray(JsonDocument& doc, const Schedule schedules[], int count) {
+    JsonArray schedulesArray = doc["schedules"].to<JsonArray>();
+    for (int index = 0; index < count; index++) {
+        JsonObject scheduleObject = schedulesArray.add<JsonObject>();
+        scheduleObject["id"] = schedules[index].getId();
+        scheduleObject["drawerId"] = schedules[index].getDrawerId();
+        scheduleObject["enabled"] = schedules[index].isEnabled();
+
+        JsonArray timesArray = scheduleObject["times"].to<JsonArray>();
+        for (int timeIndex = 0; timeIndex < schedules[index].getTimeCount(); timeIndex++) {
+            ScheduleTime time = schedules[index].getTime(timeIndex);
+            if (time.hour < 0 || time.minute < 0) {
+                continue;
+            }
+
+            JsonObject timeObject = timesArray.add<JsonObject>();
+            timeObject["hour"] = time.hour;
+            timeObject["minute"] = time.minute;
+        }
+
+        JsonArray daysOfWeekArray = scheduleObject["daysOfWeek"].to<JsonArray>();
+        for (int dayIndex = 0; dayIndex < schedules[index].getDayCount(); dayIndex++) {
+            String dayOfWeek = schedules[index].getDayOfWeek(dayIndex);
+            if (dayOfWeek.length() == 0) {
+                continue;
+            }
+
+            daysOfWeekArray.add(dayOfWeek);
+        }
+    }
+}
+
 int StorageManager::loadDrawers(Drawer drawers[], int maxDrawers) {
     JsonDocument doc;
     if (!readConfigDocument(doc)) {
@@ -161,14 +204,24 @@ bool StorageManager::saveDrawers(const Drawer drawers[], int count) {
         doc.clear();
     }
 
-    JsonArray drawersArray = doc["drawers"].to<JsonArray>();
-    for (int index = 0; index < count; index++) {
-        JsonObject drawerObject = drawersArray.add<JsonObject>();
-        drawerObject["id"] = drawers[index].getId();
-        drawerObject["medicationName"] = drawers[index].getMedicationName();
-        drawerObject["enabled"] = drawers[index].isEnabled();
-        drawerObject["pillCount"] = drawers[index].getPillCount();
+    writeDrawersArray(doc, drawers, count);
+
+    return writeConfigDocument(doc);
+}
+
+bool StorageManager::saveDrawersAndSchedules(
+    const Drawer drawers[],
+    int drawerCount,
+    const Schedule schedules[],
+    int scheduleCount
+) {
+    JsonDocument doc;
+    if (!readConfigDocument(doc)) {
+        doc.clear();
     }
+
+    writeDrawersArray(doc, drawers, drawerCount);
+    writeSchedulesArray(doc, schedules, scheduleCount);
 
     return writeConfigDocument(doc);
 }
@@ -250,35 +303,7 @@ bool StorageManager::saveSchedules(const Schedule schedules[], int count) {
         doc.clear();
     }
 
-    JsonArray schedulesArray = doc["schedules"].to<JsonArray>();
-    for (int index = 0; index < count; index++) {
-        JsonObject scheduleObject = schedulesArray.add<JsonObject>();
-        scheduleObject["id"] = schedules[index].getId();
-        scheduleObject["drawerId"] = schedules[index].getDrawerId();
-        scheduleObject["enabled"] = schedules[index].isEnabled();
-
-        JsonArray timesArray = scheduleObject["times"].to<JsonArray>();
-        for (int timeIndex = 0; timeIndex < schedules[index].getTimeCount(); timeIndex++) {
-            ScheduleTime time = schedules[index].getTime(timeIndex);
-            if (time.hour < 0 || time.minute < 0) {
-                continue;
-            }
-
-            JsonObject timeObject = timesArray.add<JsonObject>();
-            timeObject["hour"] = time.hour;
-            timeObject["minute"] = time.minute;
-        }
-
-        JsonArray daysOfWeekArray = scheduleObject["daysOfWeek"].to<JsonArray>();
-        for (int dayIndex = 0; dayIndex < schedules[index].getDayCount(); dayIndex++) {
-            String dayOfWeek = schedules[index].getDayOfWeek(dayIndex);
-            if (dayOfWeek.length() == 0) {
-                continue;
-            }
-
-            daysOfWeekArray.add(dayOfWeek);
-        }
-    }
+    writeSchedulesArray(doc, schedules, count);
 
     return writeConfigDocument(doc);
 }

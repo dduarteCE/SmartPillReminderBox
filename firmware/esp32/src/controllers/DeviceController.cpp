@@ -155,43 +155,55 @@ bool DeviceController::applyDrawerConfig(
 bool DeviceController::deleteDrawerConfig(int drawerId, int& removedScheduleCount) {
     removedScheduleCount = 0;
 
-    Drawer previousDrawer;
-    if (!getDrawer(drawerId, previousDrawer)) {
+    Drawer updatedDrawers[MAX_DRAWERS];
+    int drawerCount = drawerManager.getDrawers(updatedDrawers, MAX_DRAWERS);
+    bool foundDrawer = false;
+    for (int index = 0; index < drawerCount; index++) {
+        if (updatedDrawers[index].getId() == drawerId) {
+            updatedDrawers[index].setMedicationName("");
+            updatedDrawers[index].setEnabled(false);
+            updatedDrawers[index].setPillCount(0);
+            foundDrawer = true;
+            break;
+        }
+    }
+
+    if (!foundDrawer) {
         return false;
     }
 
-    Schedule previousSchedules[MAX_SCHEDULES];
-    int previousScheduleCount = reminderController.getSchedules(previousSchedules, MAX_SCHEDULES);
+    Schedule currentSchedules[MAX_SCHEDULES];
+    int currentScheduleCount = reminderController.getSchedules(currentSchedules, MAX_SCHEDULES);
 
     Schedule keptSchedules[MAX_SCHEDULES];
     int keptScheduleCount = 0;
-    for (int index = 0; index < previousScheduleCount; index++) {
-        if (previousSchedules[index].getDrawerId() == drawerId) {
-            removedScheduleCount++;
+    int schedulesToRemove = 0;
+    for (int index = 0; index < currentScheduleCount; index++) {
+        if (currentSchedules[index].getDrawerId() == drawerId) {
+            schedulesToRemove++;
             continue;
         }
 
-        keptSchedules[keptScheduleCount++] = previousSchedules[index];
+        keptSchedules[keptScheduleCount++] = currentSchedules[index];
     }
 
+    if (!storageManager.saveDrawersAndSchedules(
+        updatedDrawers,
+        drawerCount,
+        keptSchedules,
+        keptScheduleCount
+    )) {
+        return false;
+    }
+
+    removedScheduleCount = schedulesToRemove;
     if (!drawerManager.configureDrawer(drawerId, "", false, 0)) {
         return false;
     }
+
     drawerManager.stopHighlight(drawerId);
     reminderController.setSchedules(keptSchedules, keptScheduleCount);
-
-    if (persistDrawers() && persistSchedules()) {
-        return true;
-    }
-
-    drawerManager.configureDrawer(
-        drawerId,
-        previousDrawer.getMedicationName(),
-        previousDrawer.isEnabled(),
-        previousDrawer.getPillCount()
-    );
-    reminderController.setSchedules(previousSchedules, previousScheduleCount);
-    return false;
+    return true;
 }
 
 bool DeviceController::applySchedule(const Schedule& schedule) {
