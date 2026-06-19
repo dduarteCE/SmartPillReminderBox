@@ -38,7 +38,38 @@ class _MedicationPageState extends State<MedicationPage> {
     final pillCountController =
     TextEditingController();
 
-    int selectedDrawer = 1;
+    final availableDrawers =
+    List.generate(
+      7,
+          (index) => index + 1,
+    )
+        .where(
+          (drawer) =>
+      !medications.any(
+            (med) =>
+        med.drawerId ==
+            drawer,
+      ),
+    )
+        .toList();
+
+    if (availableDrawers.isEmpty) {
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        const SnackBar(
+          content: Text(
+            "All drawers are occupied",
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    int selectedDrawer =
+        availableDrawers.first;
 
     await showDialog(
       context: context,
@@ -99,16 +130,26 @@ class _MedicationPageState extends State<MedicationPage> {
 
                       items: List.generate(
                         7,
-                            (index) =>
+                            (index) => index + 1,
+                      )
+                          .where(
+                            (drawer) =>
+                        !medications.any(
+                              (med) =>
+                          med.drawerId ==
+                              drawer,
+                        ),
+                      )
+                          .map(
+                            (drawer) =>
                             DropdownMenuItem(
-                              value:
-                              index + 1,
-
+                              value: drawer,
                               child: Text(
-                                "Drawer ${index + 1}",
+                                "Drawer $drawer",
                               ),
                             ),
-                      ),
+                      )
+                          .toList(),
 
                       onChanged: (value) {
 
@@ -181,6 +222,28 @@ class _MedicationPageState extends State<MedicationPage> {
                   pillCount:
                   pillCount,
                 );
+
+                final drawerInUse =
+                medications.any(
+                      (med) =>
+                  med.drawerId ==
+                      selectedDrawer,
+                );
+
+                if (drawerInUse) {
+
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(
+
+                    SnackBar(
+                      content: Text(
+                        "Drawer $selectedDrawer is already in use",
+                      ),
+                    ),
+                  );
+
+                  return;
+                }
 
                 medications.add(
                   newMedication,
