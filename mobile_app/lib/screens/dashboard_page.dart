@@ -88,7 +88,7 @@ class _DashboardPageState extends State<DashboardPage> {
         schedule,
       );
 
-      if (!result) {
+      if (result == null) {
         success = false;
       }
     }

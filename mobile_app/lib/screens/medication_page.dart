@@ -35,9 +35,6 @@ class _MedicationPageState extends State<MedicationPage> {
     final nameController =
     TextEditingController();
 
-    final dosageController =
-    TextEditingController();
-
     final pillCountController =
     TextEditingController();
 
@@ -67,17 +64,6 @@ class _MedicationPageState extends State<MedicationPage> {
                   const InputDecoration(
                     labelText:
                     "Medication Name",
-                  ),
-                ),
-
-                TextField(
-                  controller:
-                  dosageController,
-
-                  decoration:
-                  const InputDecoration(
-                    labelText:
-                    "Dosage",
                   ),
                 ),
 
@@ -189,9 +175,6 @@ class _MedicationPageState extends State<MedicationPage> {
                   name:
                   nameController.text,
 
-                  dosage:
-                  dosageController.text,
-
                   drawerId:
                   selectedDrawer,
 
@@ -253,6 +236,36 @@ class _MedicationPageState extends State<MedicationPage> {
   Future<void> deleteMedication(
       int index) async {
 
+    final medication =
+    medications[index];
+
+    final drawerId =
+        medication.drawerId;
+
+    final success =
+    await ApiService.deleteDrawer(
+      drawerId,
+    );
+
+    if (!success) {
+
+      if (mounted) {
+
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+
+          const SnackBar(
+            content: Text(
+              "Could not delete drawer on ESP32",
+            ),
+          ),
+        );
+      }
+
+      return;
+    }
+
+    // Eliminar medicamento local
     medications.removeAt(
       index,
     );
@@ -261,6 +274,35 @@ class _MedicationPageState extends State<MedicationPage> {
         .saveMedications(
       medications,
     );
+
+    // Eliminar horarios asociados
+    final schedules =
+    await StorageService
+        .loadSchedules();
+
+    schedules.removeWhere(
+          (schedule) =>
+      schedule.drawerId ==
+          drawerId,
+    );
+
+    await StorageService
+        .saveSchedules(
+      schedules,
+    );
+
+    if (mounted) {
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        const SnackBar(
+          content: Text(
+            "Drawer and schedules deleted",
+          ),
+        ),
+      );
+    }
 
     setState(() {});
   }
@@ -307,7 +349,6 @@ class _MedicationPageState extends State<MedicationPage> {
               ),
 
               subtitle: Text(
-                "${med.dosage}\n"
                     "Drawer ${med.drawerId}\n"
                     "Pills: ${med.pillCount}",
               ),

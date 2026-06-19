@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/connection_service.dart';
 import '../services/storage_service.dart';
-import '../services/websocket_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -90,16 +89,18 @@ class _SettingsPageState
       ConnectionService
           .esp32Connected = true;
 
+      await ApiService
+          .setDeviceTime();
+
       ScaffoldMessenger.of(context)
           .showSnackBar(
 
         const SnackBar(
           content: Text(
-            "ESP32 Connected",
+            "ESP32 Connected and Time Synced",
           ),
         ),
       );
-
     } else {
 
       ConnectionService
@@ -224,22 +225,6 @@ class _SettingsPageState
 
             const SizedBox(
               height: 12,
-            ),
-
-            SizedBox(
-              width: double.infinity,
-
-              child: ElevatedButton(
-
-                onPressed: () {
-                  WebSocketService
-                      .sendTestMessage();
-                },
-
-                child: const Text(
-                  "Test WebSocket",
-                ),
-              ),
             ),
           ],
         ),

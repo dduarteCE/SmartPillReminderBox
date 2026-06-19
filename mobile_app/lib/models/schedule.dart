@@ -1,5 +1,7 @@
 class Schedule {
 
+  int? id;
+
   int drawerId;
 
   List<String> times;
@@ -9,6 +11,7 @@ class Schedule {
   bool enabled;
 
   Schedule({
+    this.id,
     required this.drawerId,
     required this.times,
     required this.daysOfWeek,
@@ -17,6 +20,7 @@ class Schedule {
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'drawerId': drawerId,
       'times': times,
       'daysOfWeek': daysOfWeek,
@@ -28,6 +32,9 @@ class Schedule {
       Map<String, dynamic> json) {
 
     return Schedule(
+
+      id: json['id'],
+
       drawerId: json['drawerId'],
 
       times: List<String>.from(

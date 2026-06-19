@@ -58,7 +58,7 @@ class ApiService {
   // CREATE SCHEDULE
   // ==========================
 
-  static Future<bool> createSchedule(
+  static Future<Schedule?> createSchedule(
       Schedule schedule) async {
 
     try {
@@ -118,8 +118,35 @@ class ApiService {
         "Create Schedule Response: ${response.body}",
       );
 
-      return response.statusCode == 200 ||
-          response.statusCode == 201;
+      if (response.statusCode == 200 ||
+          response.statusCode == 201) {
+
+        final data =
+        jsonDecode(response.body);
+
+        final scheduleData =
+        data["schedule"];
+
+        return Schedule(
+
+          id:
+          scheduleData["id"],
+
+          drawerId:
+          scheduleData["drawerId"],
+
+          times:
+          schedule.times,
+
+          daysOfWeek:
+          schedule.daysOfWeek,
+
+          enabled:
+          schedule.enabled,
+        );
+      }
+
+      return null;
 
     } catch (e) {
 
@@ -127,13 +154,13 @@ class ApiService {
         "Create Schedule Error: $e",
       );
 
-      return false;
+      return null;
     }
   }
 
   // ==========================
-// UPDATE DRAWER
-// ==========================
+  // UPDATE DRAWER
+  // ==========================
 
   static Future<bool> updateDrawer(
       Medication medication) async {
@@ -223,4 +250,151 @@ class ApiService {
 
     return null;
   }
+
+  // ==========================
+  // DELETE DRAWER
+  // ==========================
+
+  static Future<bool> deleteDrawer(
+      int drawerId) async {
+
+    try {
+
+      final baseUrl =
+      await getBaseUrl();
+
+      final response =
+      await http.delete(
+        Uri.parse(
+          "$baseUrl/api/drawers/$drawerId",
+        ),
+      );
+
+      print(
+        "Delete Drawer Response: ${response.body}",
+      );
+
+      return response.statusCode == 200;
+
+    } catch (e) {
+
+      print(
+        "Delete Drawer Error: $e",
+      );
+
+      return false;
+    }
+  }
+  // ==========================
+  // SET DEVICE TIME
+  // ==========================
+
+  static Future<bool> setDeviceTime() async {
+
+    try {
+
+      final baseUrl =
+      await getBaseUrl();
+
+      final now =
+      DateTime.now();
+
+      const weekDays = [
+        "MON",
+        "TUE",
+        "WED",
+        "THU",
+        "FRI",
+        "SAT",
+        "SUN",
+      ];
+
+      final currentDate =
+          "${now.year.toString().padLeft(4, '0')}-"
+          "${now.month.toString().padLeft(2, '0')}-"
+          "${now.day.toString().padLeft(2, '0')}";
+
+      final currentTime =
+          "${now.hour.toString().padLeft(2, '0')}:"
+          "${now.minute.toString().padLeft(2, '0')}";
+
+      final dayOfWeek =
+      weekDays[now.weekday - 1];
+
+      final response =
+      await http.put(
+
+        Uri.parse(
+          "$baseUrl/api/time",
+        ),
+
+        headers: {
+          "Content-Type":
+          "application/json",
+        },
+
+        body: jsonEncode({
+
+          "currentDate":
+          currentDate,
+
+          "currentTime":
+          currentTime,
+
+          "dayOfWeek":
+          dayOfWeek,
+        }),
+      );
+
+      print(
+        "Set Time Response: ${response.body}",
+      );
+
+      return response.statusCode == 200;
+
+    } catch (e) {
+
+      print(
+        "Set Time Error: $e",
+      );
+
+      return false;
+    }
+  }
+
+  // ==========================
+  // DELETE SCHEDULE
+  // ==========================
+
+  static Future<bool> deleteSchedule(
+      int scheduleId) async {
+
+    try {
+
+      final baseUrl =
+      await getBaseUrl();
+
+      final response =
+      await http.delete(
+        Uri.parse(
+          "$baseUrl/api/schedules/$scheduleId",
+        ),
+      );
+
+      print(
+        "Delete Schedule Response: ${response.body}",
+      );
+
+      return response.statusCode == 200;
+
+    } catch (e) {
+
+      print(
+        "Delete Schedule Error: $e",
+      );
+
+      return false;
+    }
+  }
+
 }
