@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import '../services/api_service.dart';
+import '../services/connection_service.dart';
 import '../services/storage_service.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -47,6 +48,9 @@ class _SettingsPageState
       portController.text,
     );
 
+    ConnectionService
+        .esp32Connected = false;
+
     if (mounted) {
 
       ScaffoldMessenger.of(context)
@@ -55,6 +59,46 @@ class _SettingsPageState
         const SnackBar(
           content: Text(
             "Settings saved",
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> testConnection() async {
+
+    final health =
+    await ApiService.getDeviceHealth();
+
+    if (!mounted) return;
+
+    if (health != null &&
+        health["success"] == true) {
+
+      ConnectionService
+          .esp32Connected = true;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        const SnackBar(
+          content: Text(
+            "ESP32 Connected",
+          ),
+        ),
+      );
+
+    } else {
+
+      ConnectionService
+          .esp32Connected = false;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        const SnackBar(
+          content: Text(
+            "ESP32 Not Reachable",
           ),
         ),
       );
@@ -123,6 +167,21 @@ class _SettingsPageState
 
                 child: const Text(
                   "Save",
+                ),
+              ),
+            ),
+            const SizedBox(
+              height: 12,
+            ),
+
+            SizedBox(
+              width: double.infinity,
+
+              child: ElevatedButton(
+                onPressed: testConnection,
+
+                child: const Text(
+                  "Test Connection",
                 ),
               ),
             ),

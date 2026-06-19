@@ -38,8 +38,10 @@ class _MedicationPageState extends State<MedicationPage> {
     final dosageController =
     TextEditingController();
 
-    int selectedDrawer = 1;
+    final pillCountController =
+    TextEditingController();
 
+    int selectedDrawer = 1;
 
     await showDialog(
       context: context,
@@ -47,7 +49,9 @@ class _MedicationPageState extends State<MedicationPage> {
       builder: (context) {
 
         return AlertDialog(
-          title: const Text("New Medication"),
+          title: const Text(
+            "New Medication",
+          ),
 
           content: SingleChildScrollView(
             child: Column(
@@ -56,16 +60,38 @@ class _MedicationPageState extends State<MedicationPage> {
               children: [
 
                 TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: "Medication Name",
+                  controller:
+                  nameController,
+
+                  decoration:
+                  const InputDecoration(
+                    labelText:
+                    "Medication Name",
                   ),
                 ),
 
                 TextField(
-                  controller: dosageController,
-                  decoration: const InputDecoration(
-                    labelText: "Dosage",
+                  controller:
+                  dosageController,
+
+                  decoration:
+                  const InputDecoration(
+                    labelText:
+                    "Dosage",
+                  ),
+                ),
+
+                TextField(
+                  controller:
+                  pillCountController,
+
+                  keyboardType:
+                  TextInputType.number,
+
+                  decoration:
+                  const InputDecoration(
+                    labelText:
+                    "Pill Count (1-30)",
                   ),
                 ),
 
@@ -76,18 +102,22 @@ class _MedicationPageState extends State<MedicationPage> {
                       ) {
 
                     return DropdownButtonFormField<int>(
-                      value: selectedDrawer,
+                      value:
+                      selectedDrawer,
 
                       decoration:
                       const InputDecoration(
-                        labelText: "Drawer",
+                        labelText:
+                        "Drawer",
                       ),
 
                       items: List.generate(
                         7,
                             (index) =>
                             DropdownMenuItem(
-                              value: index + 1,
+                              value:
+                              index + 1,
+
                               child: Text(
                                 "Drawer ${index + 1}",
                               ),
@@ -97,7 +127,8 @@ class _MedicationPageState extends State<MedicationPage> {
                       onChanged: (value) {
 
                         setDialogState(() {
-                          selectedDrawer = value!;
+                          selectedDrawer =
+                          value!;
                         });
                       },
                     );
@@ -111,38 +142,84 @@ class _MedicationPageState extends State<MedicationPage> {
 
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(
+                  context,
+                );
               },
-              child: const Text("Cancel"),
+
+              child:
+              const Text(
+                "Cancel",
+              ),
             ),
 
             ElevatedButton(
               onPressed: () async {
 
-                if (nameController.text.isEmpty) {
+                if (nameController
+                    .text
+                    .isEmpty) {
+                  return;
+                }
+
+                final pillCount =
+                    int.tryParse(
+                      pillCountController
+                          .text,
+                    ) ??
+                        0;
+
+                if (pillCount < 1 ||
+                    pillCount > 30) {
+
+                  ScaffoldMessenger
+                      .of(context)
+                      .showSnackBar(
+
+                    const SnackBar(
+                      content: Text(
+                        "Pill count must be between 1 and 30",
+                      ),
+                    ),
+                  );
+
                   return;
                 }
 
                 medications.add(
                   Medication(
-                    name: nameController.text,
-                    dosage: dosageController.text,
-                    drawerId: selectedDrawer,
+                    name:
+                    nameController.text,
+
+                    dosage:
+                    dosageController.text,
+
+                    drawerId:
+                    selectedDrawer,
+
+                    pillCount:
+                    pillCount,
                   ),
                 );
 
                 await StorageService
                     .saveMedications(
-                    medications);
+                  medications,
+                );
 
                 setState(() {});
 
                 if (mounted) {
-                  Navigator.pop(context);
+                  Navigator.pop(
+                    context,
+                  );
                 }
               },
 
-              child: const Text("Save"),
+              child:
+              const Text(
+                "Save",
+              ),
             ),
           ],
         );
@@ -150,12 +227,15 @@ class _MedicationPageState extends State<MedicationPage> {
     );
   }
 
-  Future<void> deleteMedication(int index)
-  async {
+  Future<void> deleteMedication(
+      int index) async {
 
-    medications.removeAt(index);
+    medications.removeAt(
+      index,
+    );
 
-    await StorageService.saveMedications(
+    await StorageService
+        .saveMedications(
       medications,
     );
 
@@ -166,8 +246,11 @@ class _MedicationPageState extends State<MedicationPage> {
   Widget build(BuildContext context) {
 
     return Scaffold(
+
       appBar: AppBar(
-        title: const Text("Medications"),
+        title: const Text(
+          "Medications",
+        ),
       ),
 
       body: medications.isEmpty
@@ -179,9 +262,11 @@ class _MedicationPageState extends State<MedicationPage> {
       )
 
           : ListView.builder(
-        itemCount: medications.length,
+        itemCount:
+        medications.length,
 
-        itemBuilder: (context, index) {
+        itemBuilder:
+            (context, index) {
 
           final med =
           medications[index];
@@ -190,18 +275,25 @@ class _MedicationPageState extends State<MedicationPage> {
             child: ListTile(
 
               leading:
-              const Icon(Icons.medication),
+              const Icon(
+                Icons.medication,
+              ),
 
               title: Text(
                 med.name,
               ),
 
               subtitle: Text(
-                "${med.dosage} | Drawer ${med.drawerId}",
+                "${med.dosage}\n"
+                    "Drawer ${med.drawerId}\n"
+                    "Pills: ${med.pillCount}",
               ),
 
-              trailing: IconButton(
-                icon: const Icon(
+              trailing:
+              IconButton(
+
+                icon:
+                const Icon(
                   Icons.delete,
                 ),
 
@@ -218,8 +310,13 @@ class _MedicationPageState extends State<MedicationPage> {
 
       floatingActionButton:
       FloatingActionButton(
-        onPressed: addMedication,
-        child: const Icon(Icons.add),
+        onPressed:
+        addMedication,
+
+        child:
+        const Icon(
+          Icons.add,
+        ),
       ),
     );
   }

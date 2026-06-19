@@ -5,6 +5,7 @@ import 'screens/dashboard_page.dart';
 import 'screens/history_page.dart';
 import 'screens/settings_page.dart';
 import 'services/websocket_service.dart';
+import 'services/connection_service.dart';
 
 void main() async {
 
@@ -65,11 +66,34 @@ class _MainScreenState extends State<MainScreen> {
         selectedIndex: currentIndex,
 
         onDestinationSelected: (index) {
+
+          final requiresConnection =
+
+              index == 1 || // Medication
+                  index == 2 || // Schedule
+                  index == 3;   // History
+
+          if (requiresConnection &&
+              !ConnectionService
+                  .esp32Connected) {
+
+            ScaffoldMessenger.of(context)
+                .showSnackBar(
+
+              const SnackBar(
+                content: Text(
+                  "Connect to ESP32 first",
+                ),
+              ),
+            );
+
+            return;
+          }
+
           setState(() {
             currentIndex = index;
           });
         },
-
         destinations: const [
 
           NavigationDestination(

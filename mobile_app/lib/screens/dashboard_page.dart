@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../services/connection_service.dart';
 import '../models/medication.dart';
 import '../models/schedule.dart';
 import '../services/storage_service.dart';
@@ -51,9 +51,15 @@ class _DashboardPageState extends State<DashboardPage> {
 
         esp32Status = "Connected";
 
+        ConnectionService
+            .esp32Connected = true;
+
       } else {
 
         esp32Status = "Disconnected";
+
+        ConnectionService
+            .esp32Connected = false;
       }
     });
   }
