@@ -19,6 +19,7 @@ public:
     int loadEvents(DoseEvent events[], int maxEvents);
     bool saveEvents(const DoseEvent events[], int count);
     bool clearAcknowledgedEvents(const int eventIds[], int count);
+    bool clearConfig();
     String getConfigFilePath() const;
 
 private:

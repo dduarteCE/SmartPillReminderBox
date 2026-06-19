@@ -31,6 +31,7 @@ void DeviceController::loop() {
     webServerController.handleClient();
     webSocketService.handleWebSocket();
     drawerManager.update();
+    updateReminderFeedback();
 
     DateTime currentDateTime = clockModule.getCurrentDateTime();
 
@@ -151,6 +152,48 @@ bool DeviceController::applyDrawerConfig(
     return false;
 }
 
+bool DeviceController::deleteDrawerConfig(int drawerId, int& removedScheduleCount) {
+    removedScheduleCount = 0;
+
+    Drawer previousDrawer;
+    if (!getDrawer(drawerId, previousDrawer)) {
+        return false;
+    }
+
+    Schedule previousSchedules[MAX_SCHEDULES];
+    int previousScheduleCount = reminderController.getSchedules(previousSchedules, MAX_SCHEDULES);
+
+    Schedule keptSchedules[MAX_SCHEDULES];
+    int keptScheduleCount = 0;
+    for (int index = 0; index < previousScheduleCount; index++) {
+        if (previousSchedules[index].getDrawerId() == drawerId) {
+            removedScheduleCount++;
+            continue;
+        }
+
+        keptSchedules[keptScheduleCount++] = previousSchedules[index];
+    }
+
+    if (!drawerManager.configureDrawer(drawerId, "", false, 0)) {
+        return false;
+    }
+    drawerManager.stopHighlight(drawerId);
+    reminderController.setSchedules(keptSchedules, keptScheduleCount);
+
+    if (persistDrawers() && persistSchedules()) {
+        return true;
+    }
+
+    drawerManager.configureDrawer(
+        drawerId,
+        previousDrawer.getMedicationName(),
+        previousDrawer.isEnabled(),
+        previousDrawer.getPillCount()
+    );
+    reminderController.setSchedules(previousSchedules, previousScheduleCount);
+    return false;
+}
+
 bool DeviceController::applySchedule(const Schedule& schedule) {
     Schedule previousSchedules[MAX_SCHEDULES];
     int previousScheduleCount = reminderController.getSchedules(previousSchedules, MAX_SCHEDULES);
@@ -216,6 +259,48 @@ bool DeviceController::acknowledgeEvents(const int eventIds[], int count) {
     return true;
 }
 
+bool DeviceController::resetConfiguration() {
+    if (!storageManager.clearConfig()) {
+        return false;
+    }
+
+    drawerManager.turnOffAllDrawers();
+    drawerManager.reset();
+    for (int index = 0; index < drawerManager.getDrawerCount(); index++) {
+        Drawer* drawer = drawerManager.getDrawer(index + 1);
+        if (drawer != nullptr) {
+            drawer->begin();
+        }
+    }
+
+    reminderController.reset();
+    reminderController.setDrawerManager(&drawerManager);
+    unacknowledgedEventCount = 0;
+    buzzer.deactivate();
+    lcdScreen.showMessage("Config reset");
+    return true;
+}
+
+void DeviceController::updateReminderFeedback() {
+    if (!drawerManager.isHighlightActive()) {
+        if (buzzer.isActive()) {
+            buzzer.deactivate();
+        }
+        return;
+    }
+
+    if (drawerManager.isHighlightPulseOn()) {
+        if (!buzzer.isActive()) {
+            buzzer.activate();
+        }
+        return;
+    }
+
+    if (buzzer.isActive()) {
+        buzzer.deactivate();
+    }
+}
+
 void DeviceController::onReminderEvent(const DoseEvent& event) {
     publishDoseEvent(event);
 }
@@ -224,7 +309,6 @@ void DeviceController::publishDoseEvent(const DoseEvent& event) {
     switch (event.getType()) {
         case DoseEventType::ReminderStarted:
             drawerManager.highlightDrawer(event.getDrawerId());
-            buzzer.activate();
             lcdScreen.showReminder(event.getMedicationName(), event.getDrawerId());
             break;
         case DoseEventType::DrawerOpened:

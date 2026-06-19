@@ -3,20 +3,14 @@
 #include "config/PinConfig.h"
 
 DrawerManager::DrawerManager()
-    : drawers{
-        Drawer(1, "", false, LED_DRAWER_1_PIN, REED_DRAWER_1_PIN),
-        Drawer(2, "", false, LED_DRAWER_2_PIN, REED_DRAWER_2_PIN),
-        Drawer(3, "", false, LED_DRAWER_3_PIN, REED_DRAWER_3_PIN),
-        Drawer(4, "", false, LED_DRAWER_4_PIN, REED_DRAWER_4_PIN),
-        Drawer(5, "", false, LED_DRAWER_5_PIN, REED_DRAWER_5_PIN),
-        Drawer(6, "", false, LED_DRAWER_6_PIN, REED_DRAWER_6_PIN),
-        Drawer(7, "", false, LED_DRAWER_7_PIN, REED_DRAWER_7_PIN)
-      },
-      drawerCount(MAX_DRAWERS),
+    : drawerCount(MAX_DRAWERS),
       drawerLights(NEOPIXEL_COUNT, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800),
       highlightedDrawerId(0),
       highlightLightsOn(false),
-      lastHighlightToggleMs(0) {}
+      lastHighlightToggleMs(0),
+      reminderColorIndex(0) {
+    reset();
+}
 
 void DrawerManager::begin() {
     for (int index = 0; index < drawerCount; index++) {
@@ -24,6 +18,21 @@ void DrawerManager::begin() {
     }
     drawerLights.begin();
     clearDrawerLights();
+}
+
+void DrawerManager::reset() {
+    drawers[0] = Drawer(1, "", false, LED_DRAWER_1_PIN, REED_DRAWER_1_PIN);
+    drawers[1] = Drawer(2, "", false, LED_DRAWER_2_PIN, REED_DRAWER_2_PIN);
+    drawers[2] = Drawer(3, "", false, LED_DRAWER_3_PIN, REED_DRAWER_3_PIN);
+    drawers[3] = Drawer(4, "", false, LED_DRAWER_4_PIN, REED_DRAWER_4_PIN);
+    drawers[4] = Drawer(5, "", false, LED_DRAWER_5_PIN, REED_DRAWER_5_PIN);
+    drawers[5] = Drawer(6, "", false, LED_DRAWER_6_PIN, REED_DRAWER_6_PIN);
+    drawers[6] = Drawer(7, "", false, LED_DRAWER_7_PIN, REED_DRAWER_7_PIN);
+    drawerCount = MAX_DRAWERS;
+    highlightedDrawerId = 0;
+    highlightLightsOn = false;
+    lastHighlightToggleMs = 0;
+    reminderColorIndex = 0;
 }
 
 void DrawerManager::setDrawers(const Drawer drawers[], int count) {
@@ -96,6 +105,7 @@ void DrawerManager::highlightDrawer(int drawerId) {
         highlightedDrawerId = drawerId;
         highlightLightsOn = true;
         lastHighlightToggleMs = millis();
+        reminderColorIndex = 0;
         showHighlightedDrawer();
     }
 }
@@ -130,6 +140,14 @@ bool DrawerManager::readDrawerState(int drawerId) {
     return isDrawerOpen(drawerId);
 }
 
+bool DrawerManager::isHighlightActive() const {
+    return highlightedDrawerId > 0;
+}
+
+bool DrawerManager::isHighlightPulseOn() const {
+    return highlightedDrawerId > 0 && highlightLightsOn;
+}
+
 void DrawerManager::update() {
     for (int index = 0; index < drawerCount; index++) {
         drawers[index].update();
@@ -159,9 +177,9 @@ void DrawerManager::showHighlightedDrawer() {
     }
 
     drawerLights.clear();
-    int drawerIndex = highlightedDrawerId - 1;
+    int drawerIndex = NEOPIXEL_DRAWER_COUNT - highlightedDrawerId;
     int firstPixelIndex = drawerIndex * NEOPIXELS_PER_DRAWER;
-    uint32_t color = reminderColor();
+    uint32_t color = nextReminderColor();
     for (int offset = 0; offset < NEOPIXELS_PER_DRAWER; offset++) {
         drawerLights.setPixelColor(firstPixelIndex + offset, color);
     }
@@ -173,6 +191,15 @@ void DrawerManager::clearDrawerLights() {
     drawerLights.show();
 }
 
-uint32_t DrawerManager::reminderColor() const {
-    return drawerLights.Color(32, 16, 0);
+uint32_t DrawerManager::nextReminderColor() {
+    uint32_t colors[] = {
+        drawerLights.Color(32, 16, 0),
+        drawerLights.Color(0, 28, 24),
+        drawerLights.Color(28, 0, 24),
+        drawerLights.Color(0, 32, 0),
+        drawerLights.Color(0, 0, 32),
+    };
+    uint32_t color = colors[reminderColorIndex % (sizeof(colors) / sizeof(colors[0]))];
+    reminderColorIndex++;
+    return color;
 }

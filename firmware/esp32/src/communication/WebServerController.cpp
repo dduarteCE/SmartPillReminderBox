@@ -179,6 +179,11 @@ void WebServerController::begin() {
         sendJsonResponse();
     });
 
+    server.on("/api/reset", HTTP_POST, [this]() {
+        handleResetConfiguration();
+        sendJsonResponse();
+    });
+
     server.on("/api/time", HTTP_GET, [this]() {
         handleGetTime();
         sendJsonResponse();
@@ -238,6 +243,12 @@ void WebServerController::handleDynamicRoute() {
 
     if (method == HTTP_PUT && extractPathId(uri, "/api/drawers/", id)) {
         handleUpdateDrawer(id, server.arg("plain"));
+        sendJsonResponse();
+        return;
+    }
+
+    if (method == HTTP_DELETE && extractPathId(uri, "/api/drawers/", id)) {
+        handleDeleteDrawer(id);
         sendJsonResponse();
         return;
     }
@@ -486,6 +497,41 @@ void WebServerController::handleSaveSchedule(int scheduleId, const String& reque
     lastResponse = serializeJsonDocument(responseDoc);
 }
 
+void WebServerController::handleDeleteDrawer(int drawerId) {
+    if (deviceController == nullptr) {
+        lastResponse = buildErrorResponse(
+            "DRAWER_NOT_FOUND",
+            "Drawer " + String(drawerId) + " does not exist"
+        );
+        return;
+    }
+
+    Drawer drawer;
+    if (!deviceController->getDrawer(drawerId, drawer)) {
+        lastResponse = buildErrorResponse(
+            "DRAWER_NOT_FOUND",
+            "Drawer " + String(drawerId) + " does not exist"
+        );
+        return;
+    }
+
+    int removedScheduleCount = 0;
+    if (!deviceController->deleteDrawerConfig(drawerId, removedScheduleCount)) {
+        lastResponse = buildErrorResponse(
+            "DRAWER_DELETE_FAILED",
+            "Drawer " + String(drawerId) + " could not be deleted"
+        );
+        return;
+    }
+
+    JsonDocument responseDoc;
+    responseDoc["success"] = true;
+    responseDoc["message"] = "Drawer deleted";
+    responseDoc["deletedDrawerId"] = drawerId;
+    responseDoc["removedScheduleCount"] = removedScheduleCount;
+    lastResponse = serializeJsonDocument(responseDoc);
+}
+
 void WebServerController::handleDeleteSchedule(int scheduleId) {
     if (deviceController == nullptr) {
         lastResponse = buildErrorResponse(
@@ -628,6 +674,23 @@ void WebServerController::handleAcknowledgeEvents(const String& requestBody) {
     responseDoc["success"] = true;
     responseDoc["message"] = "Events acknowledged";
     responseDoc["acknowledgedCount"] = requestedCount;
+    lastResponse = serializeJsonDocument(responseDoc);
+}
+
+void WebServerController::handleResetConfiguration() {
+    if (deviceController == nullptr) {
+        lastResponse = buildErrorResponse("DEVICE_NOT_READY", "Device services are not available");
+        return;
+    }
+
+    if (!deviceController->resetConfiguration()) {
+        lastResponse = buildErrorResponse("RESET_FAILED", "Stored configuration could not be reset");
+        return;
+    }
+
+    JsonDocument responseDoc;
+    responseDoc["success"] = true;
+    responseDoc["message"] = "Configuration reset";
     lastResponse = serializeJsonDocument(responseDoc);
 }
 
