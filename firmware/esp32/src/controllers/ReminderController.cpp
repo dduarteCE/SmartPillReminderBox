@@ -19,6 +19,21 @@ ReminderController::ReminderController()
 
 void ReminderController::begin() {}
 
+void ReminderController::reset() {
+    scheduleCount = 0;
+    pendingEventCount = 0;
+    currentSchedule = Schedule();
+    currentScheduledTime = {0, 0};
+    state = ReminderState::Idle;
+    reminderStartTime = 0;
+    nextEventID = 1;
+    lastTriggeredScheduleId = 0;
+    lastTriggeredHour = -1;
+    lastTriggeredMinute = -1;
+    lastTriggeredDate = "";
+    hasDrawerOpened = false;
+}
+
 void ReminderController::setDrawerManager(DrawerManager* drawerManager) {
     this->drawerManager = drawerManager;
 }

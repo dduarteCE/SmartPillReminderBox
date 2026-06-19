@@ -18,7 +18,7 @@ http://<esp32-ip>
 Base WebSocket URL:
 
 ```text
-ws://<esp32-ip>/ws/events
+ws://<esp32-ip>:81/
 ```
 
 All HTTP responses use:
@@ -669,9 +669,95 @@ POST /api/events/ack
 
 ---
 
+## 3.3 `resetConfiguration`
+
+Clears the ESP32 stored test configuration and resets runtime drawer, schedule, and event state.
+
+Use this for hardware/app testing when you want to start from a clean device without reflashing firmware.
+
+### Request
+
+```http
+POST /api/reset
+```
+
+### Request body
+
+```json
+{}
+```
+
+### Success response
+
+```json
+{
+  "success": true,
+  "message": "Configuration reset"
+}
+```
+
+### Error response
+
+```json
+{
+  "success": false,
+  "error": "RESET_FAILED",
+  "message": "Stored configuration could not be reset"
+}
+```
+
+---
+
 # 4. DELETE Requests
 
-## 4.1 `deleteSchedule`
+## 4.1 `deleteDrawer`
+
+Clears one physical drawer configuration from the ESP32.
+
+The drawer hardware ID still exists, but its medication name, enabled flag, and pill count are reset. Any schedules assigned to that drawer are also removed.
+
+### Request
+
+```http
+DELETE /api/drawers/{drawerId}
+```
+
+Example:
+
+```http
+DELETE /api/drawers/1
+```
+
+### Request body
+
+```json
+{}
+```
+
+### Success response
+
+```json
+{
+  "success": true,
+  "message": "Drawer deleted",
+  "deletedDrawerId": 1,
+  "removedScheduleCount": 2
+}
+```
+
+### Error response
+
+```json
+{
+  "success": false,
+  "error": "DRAWER_NOT_FOUND",
+  "message": "Drawer 1 does not exist"
+}
+```
+
+---
+
+## 4.2 `deleteSchedule`
 
 Deletes one schedule from the ESP32.
 
@@ -734,7 +820,7 @@ The app connects to this endpoint to receive live ESP32-generated feedback event
 ### Connection
 
 ```text
-ws://<esp32-ip>/ws/events
+ws://<esp32-ip>:81/
 ```
 
 ---
@@ -893,11 +979,13 @@ PUT /api/time
 ```http
 POST /api/schedules
 POST /api/events/ack
+POST /api/reset
 ```
 
 ## DELETE
 
 ```http
+DELETE /api/drawers/{drawerId}
 DELETE /api/schedules/{scheduleId}
 ```
 
@@ -910,5 +998,5 @@ None for MVP
 ## WebSocket
 
 ```text
-ws://<esp32-ip>/ws/events
+ws://<esp32-ip>:81/
 ```

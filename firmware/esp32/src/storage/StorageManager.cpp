@@ -13,9 +13,14 @@ bool StorageManager::begin() {
 }
 
 bool StorageManager::readConfigDocument(JsonDocument& doc) {
+    if (!LittleFS.exists(configFilePath)) {
+        Serial.println("No saved config yet");
+        return false;
+    }
+
     File file = LittleFS.open(configFilePath, "r");
     if (!file) {
-        Serial.println("No saved config yet");
+        Serial.println("Failed to open config.json for reading");
         return false;
     }
 
@@ -31,7 +36,9 @@ bool StorageManager::readConfigDocument(JsonDocument& doc) {
 
 bool StorageManager::writeConfigDocument(const JsonDocument& doc) {
     String tempFilePath = configFilePath + ".tmp";
-    LittleFS.remove(tempFilePath);
+    if (LittleFS.exists(tempFilePath)) {
+        LittleFS.remove(tempFilePath);
+    }
 
     File file = LittleFS.open(tempFilePath, "w");
     if (!file) {
@@ -44,13 +51,17 @@ bool StorageManager::writeConfigDocument(const JsonDocument& doc) {
     file.close();
     if (bytesWritten == 0) {
         Serial.println("Failed to write config.json");
-        LittleFS.remove(tempFilePath);
+        if (LittleFS.exists(tempFilePath)) {
+            LittleFS.remove(tempFilePath);
+        }
         return false;
     }
 
     if (!LittleFS.rename(tempFilePath, configFilePath)) {
         Serial.println("Failed to replace config.json");
-        LittleFS.remove(tempFilePath);
+        if (LittleFS.exists(tempFilePath)) {
+            LittleFS.remove(tempFilePath);
+        }
         return false;
     }
 
@@ -361,6 +372,25 @@ bool StorageManager::clearAcknowledgedEvents(const int eventIds[], int count) {
     }
 
     return writeConfigDocument(doc);
+}
+
+bool StorageManager::clearConfig() {
+    String tempFilePath = configFilePath + ".tmp";
+    if (LittleFS.exists(tempFilePath) && !LittleFS.remove(tempFilePath)) {
+        Serial.println("Failed to remove temporary config file");
+        return false;
+    }
+
+    if (!LittleFS.exists(configFilePath)) {
+        return true;
+    }
+
+    if (!LittleFS.remove(configFilePath)) {
+        Serial.println("Failed to remove config.json");
+        return false;
+    }
+
+    return true;
 }
 
 String StorageManager::getConfigFilePath() const {

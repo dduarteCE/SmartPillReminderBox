@@ -23,6 +23,7 @@ public:
     ReminderController();
 
     void begin();
+    void reset();
     void setDrawerManager(DrawerManager* drawerManager);
     void setSchedules(const Schedule schedules[], int count);
     int getSchedules(Schedule outputSchedules[], int maxSchedules) const;

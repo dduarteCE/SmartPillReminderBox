@@ -10,6 +10,7 @@ public:
     DrawerManager();
 
     void begin();
+    void reset();
     void setDrawers(const Drawer drawers[], int count);
     int getDrawers(Drawer outputDrawers[], int maxDrawers) const;
     int getDrawerCount() const;
@@ -22,12 +23,14 @@ public:
     void turnOffAllDrawers();
     bool isDrawerOpen(int drawerId);
     bool readDrawerState(int drawerId);
+    bool isHighlightActive() const;
+    bool isHighlightPulseOn() const;
     void update();
 
 private:
     void showHighlightedDrawer();
     void clearDrawerLights();
-    uint32_t reminderColor() const;
+    uint32_t nextReminderColor();
 
     Drawer drawers[MAX_DRAWERS];
     int drawerCount;
@@ -35,4 +38,5 @@ private:
     int highlightedDrawerId;
     bool highlightLightsOn;
     unsigned long lastHighlightToggleMs;
+    size_t reminderColorIndex;
 };

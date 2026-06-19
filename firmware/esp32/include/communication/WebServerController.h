@@ -22,9 +22,11 @@ public:
     void handleUpdateDrawer(int drawerId, const String& requestBody = "");
     void handleCreateSchedule(const String& requestBody = "");
     void handleUpdateSchedule(int scheduleId, const String& requestBody = "");
+    void handleDeleteDrawer(int drawerId);
     void handleDeleteSchedule(int scheduleId);
     void handleSetTime(const String& requestBody = "");
     void handleAcknowledgeEvents(const String& requestBody = "");
+    void handleResetConfiguration();
     String getLastResponse() const;
 
 private:

@@ -9,10 +9,13 @@ LCDScreen::LCDScreen(uint8_t address, uint8_t columns, uint8_t rows)
       initialized(false) {}
 
 void LCDScreen::begin() {
+    lastMessage = "Smart Pill Box";
+    printSerialScreen("Smart Pill Box");
     lcd.init();
     lcd.backlight();
     initialized = true;
-    showMessage("Smart Pill Box");
+    lcd.clear();
+    printLine(0, "Smart Pill Box");
 }
 
 void LCDScreen::clear() {
