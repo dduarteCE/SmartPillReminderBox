@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/connection_service.dart';
 import '../services/storage_service.dart';
+import '../services/websocket_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,6 +21,9 @@ class _SettingsPageState
   final portController =
   TextEditingController();
 
+  final wsPortController =
+  TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -34,8 +38,12 @@ class _SettingsPageState
     final port =
     await StorageService.loadEsp32Port();
 
+    final wsPort =
+    await StorageService.loadEsp32WsPort();
+
     ipController.text = ip;
     portController.text = port;
+    wsPortController.text = wsPort;
   }
 
   Future<void> saveSettings() async {
@@ -46,6 +54,10 @@ class _SettingsPageState
 
     await StorageService.saveEsp32Port(
       portController.text,
+    );
+
+    await StorageService.saveEsp32WsPort(
+      wsPortController.text,
     );
 
     ConnectionService
@@ -125,7 +137,8 @@ class _SettingsPageState
           children: [
 
             TextField(
-              controller: ipController,
+              controller:
+              ipController,
 
               decoration:
               const InputDecoration(
@@ -148,7 +161,28 @@ class _SettingsPageState
 
               decoration:
               const InputDecoration(
-                labelText: "Port",
+                labelText:
+                "HTTP Port",
+                border:
+                OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(
+              height: 20,
+            ),
+
+            TextField(
+              controller:
+              wsPortController,
+
+              keyboardType:
+              TextInputType.number,
+
+              decoration:
+              const InputDecoration(
+                labelText:
+                "WebSocket Port",
                 border:
                 OutlineInputBorder(),
               ),
@@ -170,6 +204,7 @@ class _SettingsPageState
                 ),
               ),
             ),
+
             const SizedBox(
               height: 12,
             ),
@@ -178,10 +213,31 @@ class _SettingsPageState
               width: double.infinity,
 
               child: ElevatedButton(
-                onPressed: testConnection,
+                onPressed:
+                testConnection,
 
                 child: const Text(
                   "Test Connection",
+                ),
+              ),
+            ),
+
+            const SizedBox(
+              height: 12,
+            ),
+
+            SizedBox(
+              width: double.infinity,
+
+              child: ElevatedButton(
+
+                onPressed: () {
+                  WebSocketService
+                      .sendTestMessage();
+                },
+
+                child: const Text(
+                  "Test WebSocket",
                 ),
               ),
             ),

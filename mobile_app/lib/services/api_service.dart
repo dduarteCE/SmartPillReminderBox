@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-
+import '../models/medication.dart';
 import '../models/schedule.dart';
 import 'storage_service.dart';
 
@@ -125,6 +125,59 @@ class ApiService {
 
       print(
         "Create Schedule Error: $e",
+      );
+
+      return false;
+    }
+  }
+
+  // ==========================
+// UPDATE DRAWER
+// ==========================
+
+  static Future<bool> updateDrawer(
+      Medication medication) async {
+
+    try {
+
+      final baseUrl =
+      await getBaseUrl();
+
+      final response =
+      await http.put(
+
+        Uri.parse(
+          "$baseUrl/api/drawers/${medication.drawerId}",
+        ),
+
+        headers: {
+          "Content-Type":
+          "application/json",
+        },
+
+        body: jsonEncode({
+
+          "medicationName":
+          medication.name,
+
+          "enabled":
+          true,
+
+          "pillCount":
+          medication.pillCount,
+        }),
+      );
+
+      print(
+        "Update Drawer Response: ${response.body}",
+      );
+
+      return response.statusCode == 200;
+
+    } catch (e) {
+
+      print(
+        "Update Drawer Error: $e",
       );
 
       return false;

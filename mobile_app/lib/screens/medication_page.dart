@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../services/api_service.dart';
 import '../models/medication.dart';
 import '../services/storage_service.dart';
 
@@ -164,10 +164,8 @@ class _MedicationPageState extends State<MedicationPage> {
 
                 final pillCount =
                     int.tryParse(
-                      pillCountController
-                          .text,
-                    ) ??
-                        0;
+                      pillCountController.text,
+                    ) ?? 0;
 
                 if (pillCount < 1 ||
                     pillCount > 30) {
@@ -186,26 +184,51 @@ class _MedicationPageState extends State<MedicationPage> {
                   return;
                 }
 
+                final newMedication =
+                Medication(
+                  name:
+                  nameController.text,
+
+                  dosage:
+                  dosageController.text,
+
+                  drawerId:
+                  selectedDrawer,
+
+                  pillCount:
+                  pillCount,
+                );
+
                 medications.add(
-                  Medication(
-                    name:
-                    nameController.text,
-
-                    dosage:
-                    dosageController.text,
-
-                    drawerId:
-                    selectedDrawer,
-
-                    pillCount:
-                    pillCount,
-                  ),
+                  newMedication,
                 );
 
                 await StorageService
                     .saveMedications(
                   medications,
                 );
+
+                final sentToEsp32 =
+                await ApiService.updateDrawer(
+                  newMedication,
+                );
+
+                if (!sentToEsp32) {
+
+                  if (mounted) {
+
+                    ScaffoldMessenger
+                        .of(context)
+                        .showSnackBar(
+
+                      const SnackBar(
+                        content: Text(
+                          "Could not sync drawer with ESP32. Saved locally only.",
+                        ),
+                      ),
+                    );
+                  }
+                }
 
                 setState(() {});
 

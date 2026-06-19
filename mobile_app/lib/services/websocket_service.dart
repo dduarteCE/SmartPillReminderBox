@@ -18,11 +18,11 @@ class WebSocketService {
       final ip =
       await StorageService.loadEsp32Ip();
 
-      final port =
-      await StorageService.loadEsp32Port();
+      final wsPort =
+      await StorageService.loadEsp32WsPort();
 
       final url =
-          "ws://$ip:$port/ws/events";
+          "ws://$ip:$wsPort/ws";
 
       print(
         "Connecting WebSocket to $url",
@@ -81,6 +81,26 @@ class WebSocketService {
     }
   }
 
+  static void sendTestMessage() {
+
+    if (!connected ||
+        _channel == null) {
+
+      print(
+        "WebSocket not connected",
+      );
+
+      return;
+    }
+
+    _channel!.sink.add(
+      jsonEncode({
+        "message":
+        "Hello from Flutter"
+      }),
+    );
+  }
+
   static void disconnect() {
 
     _channel?.sink.close();
@@ -119,7 +139,7 @@ class WebSocketService {
       }
 
       print(
-        "Event received: $type",
+        "WebSocket received: $data",
       );
 
     } catch (e) {

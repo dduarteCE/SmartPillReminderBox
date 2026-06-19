@@ -146,14 +146,17 @@ class StorageService {
   }
 
   // ==========================
-// ESP32 SETTINGS
-// ==========================
+  // ESP32 SETTINGS
+  // ==========================
 
   static const String esp32IpKey =
       "esp32_ip";
 
   static const String esp32PortKey =
       "esp32_port";
+
+  static const String esp32WsPortKey =
+      "esp32_ws_port";
 
   static Future<void> saveEsp32Ip(
       String ip) async {
@@ -205,4 +208,28 @@ class StorageService {
         "8080";
   }
 
+  static Future<void> saveEsp32WsPort(
+      String port) async {
+
+    final prefs =
+    await SharedPreferences
+        .getInstance();
+
+    await prefs.setString(
+      esp32WsPortKey,
+      port,
+    );
+  }
+
+  static Future<String> loadEsp32WsPort()
+  async {
+
+    final prefs =
+    await SharedPreferences
+        .getInstance();
+
+    return prefs.getString(
+        esp32WsPortKey) ??
+        "81";
+  }
 }
