@@ -23,3 +23,6 @@ constexpr int NEOPIXEL_PIN = 27;
 constexpr int NEOPIXEL_DRAWER_COUNT = 7;
 constexpr int NEOPIXELS_PER_DRAWER = 6;
 constexpr int NEOPIXEL_COUNT = NEOPIXEL_DRAWER_COUNT * NEOPIXELS_PER_DRAWER;
+
+constexpr int LCD_SDA_PIN = 21;
+constexpr int LCD_SCL_PIN = 22;
