@@ -28,6 +28,8 @@ class SmartPillApp extends StatelessWidget {
       title: 'Smart Pill Reminder',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        fontFamily: 'Satoshi',
+
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
         ),
@@ -36,6 +38,8 @@ class SmartPillApp extends StatelessWidget {
     );
   }
 }
+
+
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

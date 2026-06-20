@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:web_socket_channel/web_socket_channel.dart';
-
+import 'api_service.dart';
 import '../models/dose_record.dart';
 import 'storage_service.dart';
 
@@ -18,11 +18,11 @@ class WebSocketService {
       final ip =
       await StorageService.loadEsp32Ip();
 
-      final port =
-      await StorageService.loadEsp32Port();
+      final wsPort =
+      await StorageService.loadEsp32WsPort();
 
       final url =
-          "ws://$ip:$port/ws/events";
+          "ws://$ip:$wsPort/ws";
 
       print(
         "Connecting WebSocket to $url",
@@ -81,6 +81,26 @@ class WebSocketService {
     }
   }
 
+  static void sendTestMessage() {
+
+    if (!connected ||
+        _channel == null) {
+
+      print(
+        "WebSocket not connected",
+      );
+
+      return;
+    }
+
+    _channel!.sink.add(
+      jsonEncode({
+        "message":
+        "Hello from Flutter"
+      }),
+    );
+  }
+
   static void disconnect() {
 
     _channel?.sink.close();
@@ -107,6 +127,27 @@ class WebSocketService {
           data,
           "Taken",
         );
+
+        final drawerId =
+        data["drawerId"];
+
+        if (drawerId != null) {
+
+          await _decrementPillCount(
+            drawerId,
+          );
+        }
+
+        final eventId =
+        data["id"];
+
+        if (eventId != null) {
+
+          await ApiService
+              .acknowledgeEvents(
+            [eventId],
+          );
+        }
       }
 
       if (type ==
@@ -116,16 +157,80 @@ class WebSocketService {
           data,
           "Missed",
         );
+
+        final eventId =
+        data["id"];
+
+        if (eventId != null) {
+
+          await ApiService
+              .acknowledgeEvents(
+            [eventId],
+          );
+        }
+      }
+
+      if (type == "DRAWER_EMPTY") {
+
+        await _saveDoseRecord(
+          data,
+          "Empty",
+        );
+
+        final eventId =
+        data["id"];
+
+        if (eventId != null) {
+
+          await ApiService
+              .acknowledgeEvents(
+            [eventId],
+          );
+        }
       }
 
       print(
-        "Event received: $type",
+        "WebSocket received: $data",
       );
 
     } catch (e) {
 
       print(
         "WebSocket parse error: $e",
+      );
+    }
+  }
+
+  static Future<void>
+  _decrementPillCount(
+      int drawerId) async {
+
+    final medications =
+    await StorageService
+        .loadMedications();
+
+    bool changed = false;
+
+    for (final medication
+    in medications) {
+
+      if (medication.drawerId ==
+          drawerId &&
+          medication.pillCount > 0) {
+
+        medication.pillCount--;
+
+        changed = true;
+
+        break;
+      }
+    }
+
+    if (changed) {
+
+      await StorageService
+          .saveMedications(
+        medications,
       );
     }
   }

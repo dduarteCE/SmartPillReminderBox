@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../services/api_service.dart';
 import '../models/medication.dart';
 import '../services/storage_service.dart';
 
@@ -35,13 +35,41 @@ class _MedicationPageState extends State<MedicationPage> {
     final nameController =
     TextEditingController();
 
-    final dosageController =
-    TextEditingController();
-
     final pillCountController =
     TextEditingController();
 
-    int selectedDrawer = 1;
+    final availableDrawers =
+    List.generate(
+      7,
+          (index) => index + 1,
+    )
+        .where(
+          (drawer) =>
+      !medications.any(
+            (med) =>
+        med.drawerId ==
+            drawer,
+      ),
+    )
+        .toList();
+
+    if (availableDrawers.isEmpty) {
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        const SnackBar(
+          content: Text(
+            "All drawers are occupied",
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    int selectedDrawer =
+        availableDrawers.first;
 
     await showDialog(
       context: context,
@@ -67,17 +95,6 @@ class _MedicationPageState extends State<MedicationPage> {
                   const InputDecoration(
                     labelText:
                     "Medication Name",
-                  ),
-                ),
-
-                TextField(
-                  controller:
-                  dosageController,
-
-                  decoration:
-                  const InputDecoration(
-                    labelText:
-                    "Dosage",
                   ),
                 ),
 
@@ -113,16 +130,26 @@ class _MedicationPageState extends State<MedicationPage> {
 
                       items: List.generate(
                         7,
-                            (index) =>
+                            (index) => index + 1,
+                      )
+                          .where(
+                            (drawer) =>
+                        !medications.any(
+                              (med) =>
+                          med.drawerId ==
+                              drawer,
+                        ),
+                      )
+                          .map(
+                            (drawer) =>
                             DropdownMenuItem(
-                              value:
-                              index + 1,
-
+                              value: drawer,
                               child: Text(
-                                "Drawer ${index + 1}",
+                                "Drawer $drawer",
                               ),
                             ),
-                      ),
+                      )
+                          .toList(),
 
                       onChanged: (value) {
 
@@ -164,10 +191,8 @@ class _MedicationPageState extends State<MedicationPage> {
 
                 final pillCount =
                     int.tryParse(
-                      pillCountController
-                          .text,
-                    ) ??
-                        0;
+                      pillCountController.text,
+                    ) ?? 0;
 
                 if (pillCount < 1 ||
                     pillCount > 30) {
@@ -186,26 +211,70 @@ class _MedicationPageState extends State<MedicationPage> {
                   return;
                 }
 
+                final newMedication =
+                Medication(
+                  name:
+                  nameController.text,
+
+                  drawerId:
+                  selectedDrawer,
+
+                  pillCount:
+                  pillCount,
+                );
+
+                final drawerInUse =
+                medications.any(
+                      (med) =>
+                  med.drawerId ==
+                      selectedDrawer,
+                );
+
+                if (drawerInUse) {
+
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(
+
+                    SnackBar(
+                      content: Text(
+                        "Drawer $selectedDrawer is already in use",
+                      ),
+                    ),
+                  );
+
+                  return;
+                }
+
                 medications.add(
-                  Medication(
-                    name:
-                    nameController.text,
-
-                    dosage:
-                    dosageController.text,
-
-                    drawerId:
-                    selectedDrawer,
-
-                    pillCount:
-                    pillCount,
-                  ),
+                  newMedication,
                 );
 
                 await StorageService
                     .saveMedications(
                   medications,
                 );
+
+                final sentToEsp32 =
+                await ApiService.updateDrawer(
+                  newMedication,
+                );
+
+                if (!sentToEsp32) {
+
+                  if (mounted) {
+
+                    ScaffoldMessenger
+                        .of(context)
+                        .showSnackBar(
+
+                      const SnackBar(
+                        content: Text(
+                          "Could not sync drawer with ESP32. Saved locally only.",
+                        ),
+                      ),
+                    );
+                  }
+                }
 
                 setState(() {});
 
@@ -230,6 +299,36 @@ class _MedicationPageState extends State<MedicationPage> {
   Future<void> deleteMedication(
       int index) async {
 
+    final medication =
+    medications[index];
+
+    final drawerId =
+        medication.drawerId;
+
+    final success =
+    await ApiService.deleteDrawer(
+      drawerId,
+    );
+
+    if (!success) {
+
+      if (mounted) {
+
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+
+          const SnackBar(
+            content: Text(
+              "Could not delete drawer on ESP32",
+            ),
+          ),
+        );
+      }
+
+      return;
+    }
+
+    // Eliminar medicamento local
     medications.removeAt(
       index,
     );
@@ -238,6 +337,35 @@ class _MedicationPageState extends State<MedicationPage> {
         .saveMedications(
       medications,
     );
+
+    // Eliminar horarios asociados
+    final schedules =
+    await StorageService
+        .loadSchedules();
+
+    schedules.removeWhere(
+          (schedule) =>
+      schedule.drawerId ==
+          drawerId,
+    );
+
+    await StorageService
+        .saveSchedules(
+      schedules,
+    );
+
+    if (mounted) {
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        const SnackBar(
+          content: Text(
+            "Drawer and schedules deleted",
+          ),
+        ),
+      );
+    }
 
     setState(() {});
   }
@@ -284,7 +412,6 @@ class _MedicationPageState extends State<MedicationPage> {
               ),
 
               subtitle: Text(
-                "${med.dosage}\n"
                     "Drawer ${med.drawerId}\n"
                     "Pills: ${med.pillCount}",
               ),

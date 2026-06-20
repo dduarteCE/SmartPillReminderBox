@@ -301,8 +301,31 @@ class _SchedulePageState
 
                     // Guardar localmente primero
 
-                    schedules.add(
+                    final createdSchedule =
+                    await ApiService.createSchedule(
                       newSchedule,
+                    );
+
+                    if (createdSchedule == null) {
+
+                      if (mounted) {
+
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(
+
+                          const SnackBar(
+                            content: Text(
+                              "Failed to create schedule on ESP32",
+                            ),
+                          ),
+                        );
+                      }
+
+                      return;
+                    }
+
+                    schedules.add(
+                      createdSchedule,
                     );
 
                     await StorageService
@@ -316,27 +339,6 @@ class _SchedulePageState
 
                       Navigator.pop(
                         context,
-                      );
-                    }
-
-                    // Intentar sincronizar después
-
-                    final sentToEsp32 =
-                    await ApiService.createSchedule(
-                      newSchedule,
-                    );
-
-                    if (!sentToEsp32 &&
-                        mounted) {
-
-                      ScaffoldMessenger
-                          .of(context)
-                          .showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Schedule saved locally. ESP32 unavailable.",
-                          ),
-                        ),
                       );
                     }
                   },
@@ -356,7 +358,50 @@ class _SchedulePageState
   Future<void> deleteSchedule(
       int index) async {
 
-    schedules.removeAt(index);
+    final schedule =
+    schedules[index];
+
+    if (schedule.id == null) {
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        const SnackBar(
+          content: Text(
+            "Schedule ID not found",
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    final success =
+    await ApiService.deleteSchedule(
+      schedule.id!,
+    );
+
+    if (!success) {
+
+      if (mounted) {
+
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+
+          const SnackBar(
+            content: Text(
+              "Could not delete schedule on ESP32",
+            ),
+          ),
+        );
+      }
+
+      return;
+    }
+
+    schedules.removeAt(
+      index,
+    );
 
     await StorageService.saveSchedules(
       schedules,
