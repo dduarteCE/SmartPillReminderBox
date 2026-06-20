@@ -88,6 +88,8 @@ String DoseEvent::typeToString() const {
             return "DOSE_COMPLETED";
         case DoseEventType::DoseMissed:
             return "DOSE_MISSED";
+        case DoseEventType::DrawerEmpty:
+            return "DRAWER_EMPTY";
         case DoseEventType::ReminderStarted:
         default:
             return "REMINDER_STARTED";

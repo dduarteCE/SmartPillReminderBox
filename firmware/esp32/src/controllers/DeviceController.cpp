@@ -31,6 +31,8 @@ void DeviceController::loop() {
     webServerController.handleClient();
     webSocketService.handleWebSocket();
     drawerManager.update();
+    updateReminderFeedback();
+    lcdScreen.update();
 
     DateTime currentDateTime = clockModule.getCurrentDateTime();
 
@@ -124,10 +126,15 @@ bool DeviceController::setCurrentDateTime(
     return true;
 }
 
-bool DeviceController::applyDrawerConfig(int drawerId, const String& medicationName, bool enabled) {
+bool DeviceController::applyDrawerConfig(
+    int drawerId,
+    const String& medicationName,
+    bool enabled,
+    int pillCount
+) {
     Drawer previousDrawer;
     bool hadPreviousDrawer = getDrawer(drawerId, previousDrawer);
-    if (!drawerManager.configureDrawer(drawerId, medicationName, enabled)) {
+    if (!drawerManager.configureDrawer(drawerId, medicationName, enabled, pillCount)) {
         return false;
     }
 
@@ -139,10 +146,65 @@ bool DeviceController::applyDrawerConfig(int drawerId, const String& medicationN
         drawerManager.configureDrawer(
             drawerId,
             previousDrawer.getMedicationName(),
-            previousDrawer.isEnabled()
+            previousDrawer.isEnabled(),
+            previousDrawer.getPillCount()
         );
     }
     return false;
+}
+
+bool DeviceController::deleteDrawerConfig(int drawerId, int& removedScheduleCount) {
+    removedScheduleCount = 0;
+
+    Drawer updatedDrawers[MAX_DRAWERS];
+    int drawerCount = drawerManager.getDrawers(updatedDrawers, MAX_DRAWERS);
+    bool foundDrawer = false;
+    for (int index = 0; index < drawerCount; index++) {
+        if (updatedDrawers[index].getId() == drawerId) {
+            updatedDrawers[index].setMedicationName("");
+            updatedDrawers[index].setEnabled(false);
+            updatedDrawers[index].setPillCount(0);
+            foundDrawer = true;
+            break;
+        }
+    }
+
+    if (!foundDrawer) {
+        return false;
+    }
+
+    Schedule currentSchedules[MAX_SCHEDULES];
+    int currentScheduleCount = reminderController.getSchedules(currentSchedules, MAX_SCHEDULES);
+
+    Schedule keptSchedules[MAX_SCHEDULES];
+    int keptScheduleCount = 0;
+    int schedulesToRemove = 0;
+    for (int index = 0; index < currentScheduleCount; index++) {
+        if (currentSchedules[index].getDrawerId() == drawerId) {
+            schedulesToRemove++;
+            continue;
+        }
+
+        keptSchedules[keptScheduleCount++] = currentSchedules[index];
+    }
+
+    if (!storageManager.saveDrawersAndSchedules(
+        updatedDrawers,
+        drawerCount,
+        keptSchedules,
+        keptScheduleCount
+    )) {
+        return false;
+    }
+
+    removedScheduleCount = schedulesToRemove;
+    if (!drawerManager.configureDrawer(drawerId, "", false, 0)) {
+        return false;
+    }
+
+    drawerManager.stopHighlight(drawerId);
+    reminderController.setSchedules(keptSchedules, keptScheduleCount);
+    return true;
 }
 
 bool DeviceController::applySchedule(const Schedule& schedule) {
@@ -210,6 +272,48 @@ bool DeviceController::acknowledgeEvents(const int eventIds[], int count) {
     return true;
 }
 
+bool DeviceController::resetConfiguration() {
+    if (!storageManager.clearConfig()) {
+        return false;
+    }
+
+    drawerManager.turnOffAllDrawers();
+    drawerManager.reset();
+    for (int index = 0; index < drawerManager.getDrawerCount(); index++) {
+        Drawer* drawer = drawerManager.getDrawer(index + 1);
+        if (drawer != nullptr) {
+            drawer->begin();
+        }
+    }
+
+    reminderController.reset();
+    reminderController.setDrawerManager(&drawerManager);
+    unacknowledgedEventCount = 0;
+    buzzer.deactivate();
+    lcdScreen.showMessage("Config reset");
+    return true;
+}
+
+void DeviceController::updateReminderFeedback() {
+    if (!drawerManager.isHighlightActive()) {
+        if (buzzer.isActive()) {
+            buzzer.deactivate();
+        }
+        return;
+    }
+
+    if (drawerManager.isHighlightPulseOn()) {
+        if (!buzzer.isActive()) {
+            buzzer.activate();
+        }
+        return;
+    }
+
+    if (buzzer.isActive()) {
+        buzzer.deactivate();
+    }
+}
+
 void DeviceController::onReminderEvent(const DoseEvent& event) {
     publishDoseEvent(event);
 }
@@ -218,7 +322,6 @@ void DeviceController::publishDoseEvent(const DoseEvent& event) {
     switch (event.getType()) {
         case DoseEventType::ReminderStarted:
             drawerManager.highlightDrawer(event.getDrawerId());
-            buzzer.activate();
             lcdScreen.showReminder(event.getMedicationName(), event.getDrawerId());
             break;
         case DoseEventType::DrawerOpened:
@@ -237,6 +340,9 @@ void DeviceController::publishDoseEvent(const DoseEvent& event) {
             buzzer.deactivate();
             lcdScreen.showDoseMissed();
             break;
+        case DoseEventType::DrawerEmpty:
+            lcdScreen.showMessage(String("Drawer ") + String(event.getDrawerId()) + " empty");
+            break;
         default:
             break;
     }
@@ -245,6 +351,40 @@ void DeviceController::publishDoseEvent(const DoseEvent& event) {
     if (!storeUnacknowledgedEvent(event)) {
         Serial.println("Failed to store unacknowledged event");
     }
+
+    if (event.getType() == DoseEventType::DoseCompleted) {
+        handleDoseCompletedInventory(event);
+    }
+}
+
+void DeviceController::handleDoseCompletedInventory(const DoseEvent& event) {
+    bool drawerBecameEmpty = false;
+    if (!drawerManager.recordDoseTaken(event.getDrawerId(), drawerBecameEmpty)) {
+        return;
+    }
+
+    if (!persistDrawers()) {
+        Serial.println("Failed to persist updated pill count");
+    }
+
+    if (drawerBecameEmpty) {
+        publishDrawerEmptyEvent(event);
+    }
+}
+
+void DeviceController::publishDrawerEmptyEvent(const DoseEvent& sourceEvent) {
+    DoseEvent drawerEmptyEvent(
+        reminderController.reserveNextEventId(),
+        DoseEventType::DrawerEmpty,
+        sourceEvent.getScheduleId(),
+        sourceEvent.getScheduledTime(),
+        sourceEvent.getDrawerId(),
+        sourceEvent.getMedicationName(),
+        sourceEvent.getTimestamp(),
+        DoseEventStatus::Pending
+    );
+
+    publishDoseEvent(drawerEmptyEvent);
 }
 
 void DeviceController::loadStoredConfiguration() {

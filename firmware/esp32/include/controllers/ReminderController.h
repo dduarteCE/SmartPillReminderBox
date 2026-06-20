@@ -23,6 +23,7 @@ public:
     ReminderController();
 
     void begin();
+    void reset();
     void setDrawerManager(DrawerManager* drawerManager);
     void setSchedules(const Schedule schedules[], int count);
     int getSchedules(Schedule outputSchedules[], int maxSchedules) const;
@@ -42,6 +43,7 @@ public:
     void resetCurrentReminder();
     ReminderState getState() const;
     void setNextEventId(int nextEventId);
+    int reserveNextEventId();
     bool hasPendingEvent() const;
     DoseEvent popPendingEvent();
 

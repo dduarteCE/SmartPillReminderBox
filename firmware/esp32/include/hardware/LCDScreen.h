@@ -14,6 +14,7 @@ public:
     );
 
     void begin();
+    void update();
     void clear();
     void showReminder(const String& medicationName, int drawerId);
     void showMessage(const String& message);
@@ -21,7 +22,9 @@ public:
     void showDoseMissed();
 
 private:
+    void showHomeScreen();
     void printLine(uint8_t row, const String& message);
+    void printSerialScreen(const String& line1, const String& line2 = "");
 
     LiquidCrystal_I2C lcd;
     uint8_t address;
@@ -29,4 +32,6 @@ private:
     uint8_t rows;
     String lastMessage;
     bool initialized;
+    bool doseConfirmedVisible;
+    unsigned long doseConfirmedShownAtMs;
 };
