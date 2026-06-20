@@ -106,6 +106,13 @@ class _HistoryPageState
       );
     }
 
+    if (status == "Empty") {
+      return const Icon(
+        Icons.inventory_2,
+        color: Colors.red,
+      );
+    }
+
     return const Icon(
       Icons.warning,
       color: Colors.orange,

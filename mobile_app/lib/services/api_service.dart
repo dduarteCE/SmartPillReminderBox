@@ -397,4 +397,51 @@ class ApiService {
     }
   }
 
+  // ==========================
+// ACKNOWLEDGE EVENTS
+// ==========================
+
+  static Future<bool> acknowledgeEvents(
+      List<int> eventIds) async {
+
+    try {
+
+      final baseUrl =
+      await getBaseUrl();
+
+      final response =
+      await http.post(
+
+        Uri.parse(
+          "$baseUrl/api/events/ack",
+        ),
+
+        headers: {
+          "Content-Type":
+          "application/json",
+        },
+
+        body: jsonEncode({
+
+          "eventIds":
+          eventIds,
+        }),
+      );
+
+      print(
+        "ACK Response: ${response.body}",
+      );
+
+      return response.statusCode == 200;
+
+    } catch (e) {
+
+      print(
+        "ACK Error: $e",
+      );
+
+      return false;
+    }
+  }
+
 }
