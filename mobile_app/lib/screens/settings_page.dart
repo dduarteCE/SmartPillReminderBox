@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/connection_service.dart';
 import '../services/storage_service.dart';
+import '../services/websocket_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -59,6 +60,8 @@ class _SettingsPageState
       wsPortController.text,
     );
 
+    await WebSocketService.disconnect();
+
     ConnectionService
         .esp32Connected = false;
 
@@ -91,6 +94,10 @@ class _SettingsPageState
 
       await ApiService
           .setDeviceTime();
+
+      await WebSocketService.connect();
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context)
           .showSnackBar(

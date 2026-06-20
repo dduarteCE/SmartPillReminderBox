@@ -398,8 +398,46 @@ class ApiService {
   }
 
   // ==========================
-// ACKNOWLEDGE EVENTS
-// ==========================
+  // GET PENDING EVENTS
+  // ==========================
+
+  static Future<List<Map<String, dynamic>>?> getPendingEvents() async {
+
+    try {
+      final baseUrl = await getBaseUrl();
+
+      final response = await http
+          .get(Uri.parse("$baseUrl/api/events"))
+          .timeout(const Duration(seconds: 3));
+
+      if (response.statusCode != 200) {
+        return null;
+      }
+
+      final data = jsonDecode(response.body);
+      if (data is! Map<String, dynamic> || data["success"] != true) {
+        return null;
+      }
+
+      final events = data["events"];
+      if (events is! List) {
+        return null;
+      }
+
+      return events
+          .whereType<Map>()
+          .map((event) => Map<String, dynamic>.from(event))
+          .toList();
+
+    } catch (e) {
+      print("Get Events Error: $e");
+      return null;
+    }
+  }
+
+  // ==========================
+  // ACKNOWLEDGE EVENTS
+  // ==========================
 
   static Future<bool> acknowledgeEvents(
       List<int> eventIds) async {
@@ -426,6 +464,8 @@ class ApiService {
           "eventIds":
           eventIds,
         }),
+      ).timeout(
+        const Duration(seconds: 3),
       );
 
       print(

@@ -1,10 +1,12 @@
 class DoseRecord {
 
+  int? eventId;
   String medicationName;
   String status;
   String timestamp;
 
   DoseRecord({
+    this.eventId,
     required this.medicationName,
     required this.status,
     required this.timestamp,
@@ -12,6 +14,7 @@ class DoseRecord {
 
   Map<String, dynamic> toJson() {
     return {
+      if (eventId != null) 'eventId': eventId,
       'medicationName': medicationName,
       'status': status,
       'timestamp': timestamp,
@@ -22,9 +25,10 @@ class DoseRecord {
       Map<String, dynamic> json) {
 
     return DoseRecord(
-      medicationName: json['medicationName'],
-      status: json['status'],
-      timestamp: json['timestamp'],
+      eventId: json['eventId'] as int?,
+      medicationName: json['medicationName'] as String,
+      status: json['status'] as String,
+      timestamp: json['timestamp'] as String,
     );
   }
 }

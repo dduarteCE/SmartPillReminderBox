@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'screens/medication_page.dart';
 import 'screens/schedule_page.dart';
@@ -12,7 +14,7 @@ void main() async {
   WidgetsFlutterBinding
       .ensureInitialized();
 
-  await WebSocketService.connect();
+  unawaited(WebSocketService.connect());
 
   runApp(
     const SmartPillApp(),

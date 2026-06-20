@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../models/dose_record.dart';
 import '../services/storage_service.dart';
@@ -14,17 +16,30 @@ class _HistoryPageState
     extends State<HistoryPage> {
 
   List<DoseRecord> records = [];
+  StreamSubscription<void>? historySubscription;
 
   @override
   void initState() {
     super.initState();
+    historySubscription =
+        StorageService.historyChanges.listen((_) => loadData());
     loadData();
+  }
+
+  @override
+  void dispose() {
+    historySubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> loadData() async {
 
     final loadedRecords =
     await StorageService.loadHistory();
+
+    if (!mounted) {
+      return;
+    }
 
     setState(() {
       records = loadedRecords;

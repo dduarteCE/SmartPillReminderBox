@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -104,7 +105,60 @@ class StorageService {
 
   static const String historyKey = "history";
 
+  static final StreamController<void> _historyChanges =
+      StreamController<void>.broadcast();
+
+  static Future<void> _historyQueue = Future<void>.value();
+
+  static Stream<void> get historyChanges => _historyChanges.stream;
+
   static Future<void> saveHistory(
+      List<DoseRecord> records) {
+
+    final snapshot = List<DoseRecord>.from(records);
+
+    return _enqueueHistoryOperation(() async {
+      await _writeHistory(snapshot);
+    });
+  }
+
+  static Future<bool> appendHistory(
+      DoseRecord record) {
+
+    return _enqueueHistoryOperation(() async {
+      final records = await loadHistory();
+
+      final alreadyStored = record.eventId != null &&
+          records.any(
+            (existing) =>
+                existing.eventId == record.eventId &&
+                existing.timestamp == record.timestamp,
+          );
+
+      if (alreadyStored) {
+        return false;
+      }
+
+      records.add(record);
+      await _writeHistory(records);
+      return true;
+    });
+  }
+
+  static Future<T> _enqueueHistoryOperation<T>(
+      Future<T> Function() operation) {
+
+    final result = _historyQueue.then((_) => operation());
+
+    _historyQueue = result.then<void>(
+      (_) {},
+      onError: (_, _) {},
+    );
+
+    return result;
+  }
+
+  static Future<void> _writeHistory(
       List<DoseRecord> records) async {
 
     final prefs =
@@ -121,6 +175,8 @@ class StorageService {
       historyKey,
       jsonList,
     );
+
+    _historyChanges.add(null);
   }
 
   static Future<List<DoseRecord>> loadHistory()
@@ -180,7 +236,7 @@ class StorageService {
 
     return prefs.getString(
         esp32IpKey) ??
-        "192.168.1.100";
+        "192.168.4.1";
   }
 
   static Future<void> saveEsp32Port(
@@ -205,7 +261,7 @@ class StorageService {
 
     return prefs.getString(
         esp32PortKey) ??
-        "8080";
+        "80";
   }
 
   static Future<void> saveEsp32WsPort(
