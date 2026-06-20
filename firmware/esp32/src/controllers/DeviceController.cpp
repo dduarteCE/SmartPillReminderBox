@@ -32,6 +32,7 @@ void DeviceController::loop() {
     webSocketService.handleWebSocket();
     drawerManager.update();
     updateReminderFeedback();
+    lcdScreen.update();
 
     DateTime currentDateTime = clockModule.getCurrentDateTime();
 

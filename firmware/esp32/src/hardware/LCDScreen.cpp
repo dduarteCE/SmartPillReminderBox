@@ -1,24 +1,49 @@
 #include "hardware/LCDScreen.h"
 
+#include <Wire.h>
+
+#include "config/PinConfig.h"
+
+namespace {
+
+constexpr unsigned long DOSE_CONFIRMED_DISPLAY_MS = 10UL * 1000UL;
+
+}  // namespace
+
 LCDScreen::LCDScreen(uint8_t address, uint8_t columns, uint8_t rows)
     : lcd(address, columns, rows),
       address(address),
       columns(columns),
       rows(rows),
       lastMessage(""),
-      initialized(false) {}
+      initialized(false),
+      doseConfirmedVisible(false),
+      doseConfirmedShownAtMs(0) {}
 
 void LCDScreen::begin() {
-    lastMessage = "Smart Pill Box";
-    printSerialScreen("Smart Pill Box");
+    Wire.begin(LCD_SDA_PIN, LCD_SCL_PIN);
     lcd.init();
+    lcd.begin(columns, rows);
     lcd.backlight();
     initialized = true;
-    lcd.clear();
-    printLine(0, "Smart Pill Box");
+    showHomeScreen();
+}
+
+void LCDScreen::update() {
+    if (!doseConfirmedVisible) {
+        return;
+    }
+
+    if (millis() - doseConfirmedShownAtMs < DOSE_CONFIRMED_DISPLAY_MS) {
+        return;
+    }
+
+    doseConfirmedVisible = false;
+    showHomeScreen();
 }
 
 void LCDScreen::clear() {
+    doseConfirmedVisible = false;
     lastMessage = "";
     printSerialScreen("");
     if (initialized) {
@@ -27,18 +52,21 @@ void LCDScreen::clear() {
 }
 
 void LCDScreen::showReminder(const String& medicationName, int drawerId) {
+    doseConfirmedVisible = false;
     lastMessage = String("Take ") + medicationName + " D" + String(drawerId);
-    printSerialScreen(medicationName, String("Drawer ") + String(drawerId));
+    String drawerLine = String("Open drawer ") + String(drawerId);
+    printSerialScreen(drawerLine, medicationName);
     if (!initialized) {
         return;
     }
 
     lcd.clear();
-    printLine(0, medicationName);
-    printLine(1, String("Drawer ") + String(drawerId));
+    printLine(0, drawerLine);
+    printLine(1, medicationName);
 }
 
 void LCDScreen::showMessage(const String& message) {
+    doseConfirmedVisible = false;
     lastMessage = message;
     printSerialScreen(message);
     if (!initialized) {
@@ -50,27 +78,43 @@ void LCDScreen::showMessage(const String& message) {
 }
 
 void LCDScreen::showDoseConfirmed() {
+    doseConfirmedVisible = true;
+    doseConfirmedShownAtMs = millis();
     lastMessage = "Dose confirmed";
-    printSerialScreen("Dose confirmed", "Thank you");
+    printSerialScreen("Dose confirmed");
     if (!initialized) {
         return;
     }
 
     lcd.clear();
     printLine(0, "Dose confirmed");
-    printLine(1, "Thank you");
+    printLine(1, "");
 }
 
 void LCDScreen::showDoseMissed() {
+    doseConfirmedVisible = false;
     lastMessage = "Dose missed";
-    printSerialScreen("Dose missed", "Check drawer");
+    printSerialScreen("Dose missed");
     if (!initialized) {
         return;
     }
 
     lcd.clear();
     printLine(0, "Dose missed");
-    printLine(1, "Check drawer");
+    printLine(1, "");
+}
+
+void LCDScreen::showHomeScreen() {
+    doseConfirmedVisible = false;
+    lastMessage = "Smart Pill Box";
+    printSerialScreen("Smart Pill Box");
+    if (!initialized) {
+        return;
+    }
+
+    lcd.clear();
+    printLine(0, "Smart Pill Box");
+    printLine(1, "");
 }
 
 void LCDScreen::printLine(uint8_t row, const String& message) {
